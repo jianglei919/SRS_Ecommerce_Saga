@@ -1,0 +1,257 @@
+{
+  "info": {
+    "_postman_id": "ecommerce-saga-collection",
+    "name": "E-Commerce Saga Pattern API",
+    "description": "API collection for testing the E-Commerce Saga Pattern system",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Order Service",
+      "item": [
+        {
+          "name": "Create Order - Happy Path",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": 1001,\n  \"items\": [\n    {\n      \"productId\": 1,\n      \"quantity\": 2\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/orders",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "orders"
+              ]
+            },
+            "description": "Create a new order - triggers the saga orchestration\nExpected: Order created with PENDING status, later moves to CONFIRMED if inventory is available"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Order - Simulate Failure",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": 1002,\n  \"items\": [\n    {\n      \"productId\": 2,\n      \"quantity\": 1000\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/orders",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "orders"
+              ]
+            },
+            "description": "Create order with insufficient inventory\nExpected: Order created with PENDING status, then CANCELLED when inventory reservation fails"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Order Status",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/orders/ORD-XXXXXXXX",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "orders",
+                "ORD-XXXXXXXX"
+              ]
+            },
+            "description": "Get order details and current status\nReplace ORD-XXXXXXXX with actual order ID from creation response"
+          },
+          "response": []
+        },
+        {
+          "name": "Dashboard",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/dashboard",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "dashboard"
+              ]
+            },
+            "description": "View real-time dashboard with orders, saga logs, and statistics\nAuto-refreshes every 2 seconds"
+          },
+          "response": []
+        },
+        {
+          "name": "Dashboard Data (API)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:8080/api/dashboard/data",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "dashboard",
+                "data"
+              ]
+            },
+            "description": "Get dashboard data in JSON format\nUsed by dashboard page for AJAX refresh"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "RabbitMQ Management",
+      "item": [
+        {
+          "name": "RabbitMQ Management UI",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "http://localhost:15672",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "15672",
+              "path": []
+            },
+            "description": "RabbitMQ Management Dashboard\nDefault credentials: guest / guest\nView queues, exchanges, connections, and message flows"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Testing Scenarios",
+      "item": [
+        {
+          "name": "Test Scenario 1: Happy Path",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": 2001,\n  \"items\": [\n    {\n      \"productId\": 1,\n      \"quantity\": 1\n    },\n    {\n      \"productId\": 3,\n      \"quantity\": 2\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/orders",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "orders"
+              ]
+            },
+            "description": "Happy Path Scenario:\n1. Order is created with PENDING status\n2. OrderCreatedEvent is published\n3. Inventory Service reserves items\n4. Order status changes to CONFIRMED\n5. Saga completes successfully\n\nExpected Results:\n- Order moves from PENDING -> CONFIRMED\n- Saga status: STARTED -> COMPLETED\n- Inventory stock decreases for products 1 and 3"
+          },
+          "response": []
+        },
+        {
+          "name": "Test Scenario 2: Compensation Path",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": 2002,\n  \"items\": [\n    {\n      \"productId\": 2,\n      \"quantity\": 10000\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/orders",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "orders"
+              ]
+            },
+            "description": "Compensation Path Scenario:\n1. Order is created with PENDING status\n2. OrderCreatedEvent is published\n3. Inventory Service detects insufficient stock\n4. InventoryReservationFailedEvent is published\n5. Order Service triggers compensation\n6. Order status changes to CANCELLED\n7. Saga status changes to COMPENSATED\n\nExpected Results:\n- Order moves from PENDING -> CANCELLED\n- Saga status: STARTED -> COMPENSATED\n- No reservation is made\n- Stock remains unchanged"
+          },
+          "response": []
+        },
+        {
+          "name": "Test Scenario 3: Multiple Orders Concurrent",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"userId\": 2003,\n  \"items\": [\n    {\n      \"productId\": 1,\n      \"quantity\": 5\n    },\n    {\n      \"productId\": 2,\n      \"quantity\": 3\n    },\n    {\n      \"productId\": 3,\n      \"quantity\": 2\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "http://localhost:8080/api/orders",
+              "protocol": "http",
+              "host": [
+                "localhost"
+              ],
+              "port": "8080",
+              "path": [
+                "api",
+                "orders"
+              ]
+            },
+            "description": "Multiple Orders Scenario:\n- Execute this request multiple times in succession\n- Observe how the system handles concurrent order processing\n- Check dashboard for real-time updates\n- All should complete successfully if inventory is available\n\nExpected Results:\n- Multiple orders created and processed in parallel\n- Each order has its own saga execution\n- Inventory counts decrease appropriately\n- Dashboard shows all orders and their statuses"
+          },
+          "response": []
+        }
+      ]
+    }
+  ]
+}
