@@ -158,6 +158,8 @@ CREATE TABLE inventory_log (
 - product_id=1, name='iPhone 16', stock=1000
 - product_id=2, name='MacBook Pro', stock=500
 
+---
+
 ## 6. RabbitMQ Event Definitions
 
 **OrderCreatedEvent**
@@ -197,6 +199,8 @@ CREATE TABLE inventory_log (
 }
 ```
 
+---
+
 ## 7. API Endpoints (Order Service) – With Examples
 
 - `POST /api/orders`
@@ -224,6 +228,8 @@ CREATE TABLE inventory_log (
 - `GET /api/dashboard`
   Real-time demo page (auto-refresh every 2 seconds)
 
+---
+
 ## 8. Saga Step-by-Step Logic (Critical – Detailed)
 
 **Happy Path**
@@ -241,6 +247,8 @@ CREATE TABLE inventory_log (
   - Publish compensation event
 - Inventory Service receives compensation → release reserved stock (`reserved -= quantity`)
 - All steps must be logged in `saga_log` table
+
+---
 
 ## 9. Docker Compose Requirements (Full Sample)
 
@@ -282,6 +290,8 @@ services:
       - rabbitmq
 ```
 
+---
+
 ## 10. Technology Stack (Exact Versions)
 
 - Java 17
@@ -293,6 +303,8 @@ services:
 - Thymeleaf + Bootstrap 5 (for dashboard)
 - Docker + Docker Compose
 
+---
+
 ## 11. Deliverables the AI Must Generate
 
 - Complete multi-module Maven project (order-service + inventory-service)
@@ -301,6 +313,8 @@ services:
 - Postman collection (JSON file)
 - Screenshots of working demo (happy path + failure compensation)
 - Project report template (matching Vol 2 format, ≤20 pages)
+
+---
 
 ## 12. Instructions for the AI
 
