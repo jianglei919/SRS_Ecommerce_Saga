@@ -102,6 +102,110 @@ A customer places an order for products (e.g., iPhone, laptop). The system must:
 2. 2PC vs Saga Comparison
 3. Microservices + RabbitMQ Architecture
 
+**System Architecture - Microservices with RabbitMQ**
+
+```mermaid
+flowchart LR
+ subgraph subGraph0["Order Service (Port 8080)"]
+        OC["Order Controller"]
+        SO["Saga Orchestrator"]
+        ODB[("Order Database<br>order_db<br>MySQL 3306")]
+  end
+ subgraph subGraph1["Inventory Service (Port 8081)"]
+        IL["Event Listener"]
+        ISL["Inventory Logic"]
+        IDB[("Inventory Database<br>inventory_db<br>MySQL 3307")]
+  end
+    Client["Web UI<br>Thymeleaf + Bootstrap"] --> OC
+    OC --> SO
+    SO --> ODB
+    SO <--> RMQ["RabbitMQ Broker<br>5672 / 15672"]
+    RMQ --> IL
+    IL --> ISL
+    ISL --> IDB
+
+     Client:::client
+     OC:::order
+     SO:::order
+     ODB:::database
+     IL:::inventory
+     ISL:::inventory
+     IDB:::database
+     RMQ:::mq
+    classDef client fill:#f3e8ff,stroke:#6b21a8,stroke-width:2px
+    classDef order fill:#dbeafe,stroke:#1e40af,stroke-width:3px
+    classDef inventory fill:#ede9fe,stroke:#4c1d95,stroke-width:3px
+    classDef database fill:#ecfdf5,stroke:#0f766e,stroke-width:2px
+    classDef mq fill:#fef3c7,stroke:#b45309,stroke-width:3px
+```
+
+**Orchestration-Based Saga Flow**
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant User as User (Web UI)
+    participant OS as Order Service<br/>(Saga Orchestrator)
+    participant RMQ as RabbitMQ
+    participant IS as Inventory Service
+
+    User->>OS: POST /api/orders
+    OS->>OS: Local Transaction<br/>Create Order (PENDING)
+    OS->>RMQ: Publish OrderCreatedEvent
+    RMQ->>IS: Consume OrderCreatedEvent
+    IS->>IS: Local Transaction<br/>Reserve Inventory
+    alt Success Path
+        IS->>RMQ: Publish InventoryReservedEvent
+        RMQ->>OS: Consume Success Event
+        OS->>OS: Update Order → CONFIRMED
+        OS->>OS: Complete Saga
+    else Failure Path
+        IS->>RMQ: Publish InventoryReservationFailedEvent
+        RMQ->>OS: Trigger Compensation
+        OS->>OS: Update Order → CANCELLED
+        OS->>RMQ: Publish Compensation Event
+        RMQ->>IS: Release Reserved Stock
+    end
+```
+
+**2PC vs Saga Pattern Comparison**
+
+```mermaid
+---
+config:
+  layout: dagre
+---
+flowchart LR
+    A[Distributed Transaction Comparison]
+
+    subgraph 2PC ["2-Phase Commit (2PC)"]
+        B1[Strong Consistency]
+        B2[Blocking Operations]
+        B3[Tight Coupling]
+        B4[Not suitable for long transactions]
+        B5[High single point of failure risk]
+    end
+
+    subgraph Saga ["Saga Pattern (Orchestration)"]
+        C1[Eventual Consistency]
+        C2[Non-blocking & Asynchronous]
+        C3[Loose Coupling]
+        C4[Excellent for long business processes]
+        C5[Reliable with compensating transactions]
+    end
+
+    A --> 2PC
+    A --> Saga
+
+    classDef twopc fill:#fee2e2,stroke:#b91c1c,stroke-width:2px
+    classDef saga fill:#ecfdf5,stroke:#0f766e,stroke-width:3px
+    classDef title fill:#fefce8,stroke:#854d0e,stroke-width:2px
+
+    class 2PC twopc
+    class Saga saga
+    class A title
+```
+
 ---
 
 ## 5. Detailed Database Schema (MySQL)
