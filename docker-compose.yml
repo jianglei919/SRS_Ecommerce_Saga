@@ -66,8 +66,8 @@ services:
   # Order Service
   order-service:
     build:
-      context: ./order-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: order-service/Dockerfile
     container_name: saga-order-service
     ports:
       - "8080:8080"
@@ -91,8 +91,8 @@ services:
   # Inventory Service
   inventory-service:
     build:
-      context: ./inventory-service
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: inventory-service/Dockerfile
     container_name: saga-inventory-service
     ports:
       - "8081:8081"
