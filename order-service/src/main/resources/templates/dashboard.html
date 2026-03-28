@@ -327,8 +327,26 @@
         }
 
         function simulateInventoryFailure() {
-            alert('Inventory Service failure simulation triggered!\nIn a real scenario, this would temporarily disable inventory reservations.');
-            // In production, this would call a endpoint to stop/pause the inventory service
+            let userId = $('#userIdInput').val() || '1001';
+
+            $.ajax({
+                url: '/api/orders',
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    userId: parseInt(userId),
+                    items: [
+                        { productId: 1, quantity: 999999 } // Huge quantity to trigger Insufficient Stock failure
+                    ]
+                }),
+                success: function (response) {
+                    alert(`Failure simulation order created: ${response.orderId}\nWatch the dashboard to see the Saga compensate and cancel the order!`);
+                    refreshDashboard();
+                },
+                error: function () {
+                    alert('Failed to simulate order failure');
+                }
+            });
         }
 
         // Initial load and auto-refresh every 2 seconds
