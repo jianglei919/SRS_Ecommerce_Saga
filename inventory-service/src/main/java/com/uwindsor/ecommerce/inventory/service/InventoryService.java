@@ -71,13 +71,13 @@ public class InventoryService {
                 inventoryRepository.save(inventory);
 
                 // Log the reservation
-                InventoryLog log = InventoryLog.builder()
+                InventoryLog inventoryLog = InventoryLog.builder()
                         .orderId(event.getOrderId())
                         .productId(productId)
                         .quantity(quantity)
                         .action(InventoryLog.InventoryAction.RESERVE)
                         .build();
-                inventoryLogRepository.save(log);
+                inventoryLogRepository.save(inventoryLog);
 
                 log.info("Inventory reserved for product: {}, quantity: {}, order: {}", 
                         productId, quantity, event.getOrderId());
@@ -106,26 +106,26 @@ public class InventoryService {
             // Find all reservations for this order
             java.util.List<InventoryLog> logs = inventoryLogRepository.findByOrderId(orderId);
 
-            for (InventoryLog log : logs) {
-                if (log.getAction() == InventoryLog.InventoryAction.RESERVE) {
+            for (InventoryLog inventoryLog : logs) {
+                if (inventoryLog.getAction() == InventoryLog.InventoryAction.RESERVE) {
                     // Release the reservation
-                    Inventory inventory = inventoryRepository.findById(log.getProductId())
-                            .orElseThrow(() -> new RuntimeException("Product not found: " + log.getProductId()));
+                    Inventory inventory = inventoryRepository.findById(inventoryLog.getProductId())
+                            .orElseThrow(() -> new RuntimeException("Product not found: " + inventoryLog.getProductId()));
 
-                    inventory.release(log.getQuantity());
+                    inventory.release(inventoryLog.getQuantity());
                     inventoryRepository.save(inventory);
 
                     // Log the release
                     InventoryLog releaseLog = InventoryLog.builder()
                             .orderId(orderId)
-                            .productId(log.getProductId())
-                            .quantity(log.getQuantity())
+                            .productId(inventoryLog.getProductId())
+                            .quantity(inventoryLog.getQuantity())
                             .action(InventoryLog.InventoryAction.RELEASE)
                             .build();
                     inventoryLogRepository.save(releaseLog);
 
                     log.info("Inventory released for product: {}, quantity: {}, order: {}", 
-                            log.getProductId(), log.getQuantity(), orderId);
+                            inventoryLog.getProductId(), inventoryLog.getQuantity(), orderId);
                 }
             }
         } catch (Exception e) {

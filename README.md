@@ -96,7 +96,7 @@ A customer places an order for products (e.g., iPhone, laptop). The system must:
 - **Database**: Database-per-Service (2 separate MySQL instances)
 - **Containerization**: Docker + Docker Compose
 
-**Required Diagrams** (AI must generate in README):
+**Required Diagrams**:
 
 1. Orchestration-Based Saga Flow
 2. 2PC vs Saga Comparison
@@ -406,24 +406,3 @@ services:
 - Lombok
 - Thymeleaf + Bootstrap 5 (for dashboard)
 - Docker + Docker Compose
-
----
-
-## 11. Deliverables the AI Must Generate
-
-- Complete multi-module Maven project (order-service + inventory-service)
-- Full docker-compose.yml + individual Dockerfiles
-- Detailed README.md with step-by-step run instructions
-- Postman collection (JSON file)
-- Screenshots of working demo (happy path + failure compensation)
-- Project report template (matching Vol 2 format, ≤20 pages)
-
----
-
-## 12. Instructions for the AI
-
-- Generate a complete, runnable project.
-- Prioritize MVP for March 31 Presentation (happy path + compensation + beautiful real-time dashboard).
-- Make the dashboard refresh every 2 seconds and include a prominent “Simulate Failure” button.
-- Add detailed comments in all code files.
-- Ensure the project starts with docker compose up --build and works out of the box.
