@@ -38,7 +38,7 @@ docker compose up --build
 | -------------- | ---------------------------------- | --------------------------- |
 | 📊 Dashboard   | http://localhost:8080/dashboard    | 实时仪表板（2秒刷新）       |
 | 📮 RabbitMQ    | http://localhost:15672             | 消息队列管理（guest/guest） |
-| 💳 Payment API | http://localhost:8083/api/payments | 支付结果回传接口            |
+| 💳 Payment API | http://localhost:8083/api/payments | 支付、钱包与支付记录接口    |
 | 📝 API 文档    | Postman_Collection.json            | 导入Postman测试             |
 
 ---
@@ -62,40 +62,53 @@ curl -X POST http://localhost:8080/api/orders \
 #   "status": "PENDING"
 # }
 
-# 2. 查看仪表板
+# 2. 查看仪表板并完成支付
 # 打开: http://localhost:8080/dashboard
 # 观察: 订单从 PENDING → CONFIRMED (2-5秒内)
-# 观察: Saga 从 STARTED → COMPLETED
+# 点击订单行中的 "Pay Now"
+# 观察: 订单变为 PAID，Payment Results 出现 SUCCESS 记录
 
 # 3. 查询最终订单状态
 curl http://localhost:8080/api/orders/ORD-A1B2C3D4
-# 结果: { "status": "CONFIRMED" }
+# 结果: { "status": "PAID" }
 ```
 
-### 场景2: 补偿路径 ⚠️ (测试故障)
+### 场景2: 支付失败补偿路径 ⚠️
 
 ```bash
-# 1. 创建订单 (库存不足 - 要求10000个iPhone)
+# 1. 创建订单（正常库存）
 curl -X POST http://localhost:8080/api/orders \
   -H "Content-Type: application/json" \
   -d '{
     "userId": 1002,
-    "items": [{"productId": 1, "quantity": 10000}]
+    "items": [{"productId": 1, "quantity": 1}]
   }'
 
 # 响应: { "orderId": "ORD-X2Y3Z4W5", "status": "PENDING" }
 
-# 2. 查看仪表板
+# 2. 在Dashboard把 userId=1002 的钱包余额设置为很小（例如 1）
+# 3. 点击该订单 "Pay Now"
+# 4. 查看仪表板
 # 打开: http://localhost:8080/dashboard
-# 观察: 订单从 PENDING → CANCELLED (2-5秒内)
-# 观察: Saga 从 STARTED → COMPENSATED
+# 观察: 订单 CONFIRMED → CANCELLED
+# 观察: Payment Results 出现 FAILED 记录
+# 观察: 库存 reserved 被回滚
 
-# 3. 查询最终订单状态
+# 5. 查询最终订单状态
 curl http://localhost:8080/api/orders/ORD-X2Y3Z4W5
 # 结果: { "status": "CANCELLED" }
 ```
 
-### 场景3: 并发订单 🔄
+### 场景3: 一键清理测试数据 🧹
+
+```bash
+# 清理订单、支付、钱包、库存日志（保留产品数据）
+curl -X DELETE http://localhost:8081/api/inventory/test-data
+curl -X DELETE http://localhost:8083/api/payments/test-data
+curl -X DELETE http://localhost:8080/api/orders/test-data
+```
+
+### 场景4: 并发订单 🔄
 
 ```bash
 # 快速创建多个订单

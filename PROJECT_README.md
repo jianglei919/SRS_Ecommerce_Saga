@@ -10,9 +10,13 @@ This project implements a **microservices-based e-commerce checkout system** tha
 
 - ✅ **Saga Orchestration**: Order Service acts as the orchestrator
 - ✅ **Payment Stage**: Payment Service finalizes or fails the order
+- ✅ **Wallet Simulation**: Per-user wallet balance load/update for payment failure testing
 - ✅ **Event-Driven**: RabbitMQ for asynchronous communication
 - ✅ **Compensation Logic**: Automatic rollback on failures
 - ✅ **Real-Time Dashboard**: Live monitoring of orders and saga progress
+- ✅ **Inventory Ops Panel**: Manual stock update per product with source tracking
+- ✅ **Payment Timeline**: Recent success/failed payments in chronological view
+- ✅ **One-Click Reset**: Clear test data while keeping product catalog
 - ✅ **Database-Per-Service**: Separate MySQL instances for each microservice
 - ✅ **Containerized**: Docker Compose for one-command deployment
 
@@ -211,8 +215,31 @@ Features:
 
 - ✨ Real-time order status updates (refreshes every 2 seconds)
 - 📊 Saga progress tracking
-- 🔴 "Simulate Failure" button for testing compensation
+- 💳 Wallet balance monitor with LOW / MEDIUM / HIGH visual hints
+- 📈 Payment timeline with SUCCESS / FAILED records
+- 📦 Product-level stock update action (`Set`)
+- 🧹 "Clear Test Data (Keep Products)" button for fast reset
 - 📈 Summary statistics (Total, Confirmed, Pending, Cancelled orders)
+
+### Additional APIs (Recent)
+
+```bash
+# Wallet APIs
+curl http://localhost:8083/api/payments/wallet/1001
+curl -X PUT "http://localhost:8083/api/payments/wallet/1001?balance=50"
+
+# Payment history / guards
+curl http://localhost:8083/api/payments/recent
+curl http://localhost:8083/api/payments/processed-order-ids
+
+# Inventory manual set
+curl -X PUT "http://localhost:8081/api/inventory/1/stock?value=25"
+
+# Clear test data (keep products)
+curl -X DELETE http://localhost:8081/api/inventory/test-data
+curl -X DELETE http://localhost:8083/api/payments/test-data
+curl -X DELETE http://localhost:8080/api/orders/test-data
+```
 
 ## 📁 Project Structure
 

@@ -52,8 +52,9 @@ A customer places an order for products (e.g., iPhone, laptop). The system must:
 
 **FR-04: Payment Reservation (Payment Service)**
 
-- Listen for successful inventory stage (manual trigger through payment API)
-- Reserve payment (local ACID transaction)
+- Payment is triggered from dashboard/API after order becomes `CONFIRMED`
+- Support per-user wallet balance read/update for simulation
+- Persist payment result with duplicate protection (same `orderId` cannot be paid twice)
 - Publish `PaymentReservedEvent` (success) or `PaymentReservationFailedEvent` (failure)
 - On failure: trigger compensation (`OrderCancelledEvent`) to release inventory
 
@@ -67,15 +68,34 @@ A customer places an order for products (e.g., iPhone, laptop). The system must:
 - Real-time view of:
   - Order status (Order DB)
   - Inventory levels (Inventory DB)
-  - Saga log
-- Button to “Simulate Failure” (e.g., temporarily stop Inventory Service)
+  - Payment timeline (success + failure records)
+- Built-in payment action button with guard logic (hide for already processed orders)
+- Wallet monitor with LOW / MEDIUM / HIGH visual level hints
+- Manual stock set per product and inventory source badge (MANUAL / SAGA)
+- One-click “Clear Test Data (Keep Products)” action for demo reset
 
 **FR-07: Logging & Monitoring**
 
 - Every saga step logged in `saga_log` table
+- Inventory manual adjustments and reserve/release operations tracked in `inventory_log`
 - RabbitMQ management UI accessible
 
-### 2.2 Extended Features (Nice-to-have for April 7 Demo)
+### 2.2 Recent Implementation Update (Mar 2026)
+
+- Added dashboard-driven payment timeline from `GET /api/payments/recent`.
+- Added wallet simulation APIs:
+  - `GET /api/payments/wallet/{userId}`
+  - `PUT /api/payments/wallet/{userId}?balance=...`
+- Added processed payment guard API:
+  - `GET /api/payments/processed-order-ids`
+- Added test-data cleanup APIs:
+  - `DELETE /api/orders/test-data`
+  - `DELETE /api/inventory/test-data`
+  - `DELETE /api/payments/test-data`
+- Added inventory manual set API:
+  - `PUT /api/inventory/{productId}/stock?value=...`
+
+### 2.3 Extended Features (Nice-to-have for April 7 Demo)
 
 - Simple OLAP query: “Total sales this week”
 - Association rule mining on completed orders

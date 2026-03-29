@@ -3,8 +3,8 @@
 ## ✅ 项目状态: 完全交付
 
 **项目名称**: 电商结账系统 - Saga模式分布式事务  
-**完成日期**: 2026年3月23日  
-**版本**: 1.0.0  
+**完成日期**: 2026年3月29日  
+**版本**: 1.1.0  
 **状态**: ✅ 生产就绪（演示版）
 
 ---
@@ -93,10 +93,17 @@
 - ✅ `PaymentService.java` - 支付结果处理与事件发布逻辑
   - `processPaymentResult()` - 处理SUCCESS/FAILED结果
   - 发布 `PaymentReservedEvent` / `PaymentReservationFailedEvent`
+- ✅ 钱包与查询API
+  - `GET /api/payments/wallet/{userId}`
+  - `PUT /api/payments/wallet/{userId}?balance=...`
+  - `GET /api/payments/recent`
+  - `GET /api/payments/processed-order-ids`
+  - `DELETE /api/payments/test-data`
 
 #### Payment Service 数据模型
 
 - ✅ `Payment.java` - 支付实体 (SUCCESS/FAILED)
+- ✅ `Wallet.java` - 钱包实体 (user_id / balance)
 - ✅ `PaymentRepository.java` - 数据访问层
 
 #### Payment Service 事件定义
@@ -115,9 +122,11 @@
 
 - ✅ `dashboard.html` - 实时仪表板 (Thymeleaf + Bootstrap 5)
   - 📊 订单表格 (实时显示)
-  - 📈 Saga日志表格 (实时显示)
+  - 📈 Payment Results 时间线（SUCCESS/FAILED）
   - 🎯 创建订单表单
-  - 🔴 模拟故障按钮
+  - 💳 钱包余额加载/设置与等级提示（LOW/MEDIUM/HIGH）
+  - 📦 库存手动设置（每个产品）
+  - 🧹 一键清理测试数据（保留产品）
   - 📊 统计汇总
   - ⏱️ 2秒自动刷新
 
@@ -153,10 +162,13 @@
 - ✅ `inventory-service/src/main/resources/schema.sql`
   - Inventory表（带索引）
   - InventoryLog表（带索引）
+  - MANUAL_SET 操作类型
   - 初始数据：iPhone 16, MacBook Pro, iPad Air, Apple Watch
 
 - ✅ `payment-service/src/main/resources/schema.sql`
   - Payment表（带索引）
+  - Wallet表
+  - 订单支付唯一约束
   - SUCCESS/FAILED 支付记录
 
 ---

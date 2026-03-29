@@ -109,15 +109,22 @@
 │  Payment Service Module             │
 ├─────────────────────────────────────┤
 │  REST Controller                    │
-│  └─ POST /api/payments/{orderId}    │
+│  ├─ POST /api/payments/{orderId}    │
+│  ├─ GET /api/payments/recent        │
+│  ├─ GET /api/payments/wallet/{userId}│
+│  ├─ PUT /api/payments/wallet/{userId}│
+│  └─ DELETE /api/payments/test-data  │
 ├─────────────────────────────────────┤
 │  Service Layer                      │
 │  ├─ processPaymentResult()          │
+│  ├─ no-duplicate payment guard      │
+│  ├─ wallet read/update              │
 │  ├─ publish payment.reserved        │
 │  └─ publish payment.failed          │
 ├─────────────────────────────────────┤
 │  Data Model                         │
-│  └─ payment                         │
+│  ├─ payment                         │
+│  └─ wallet                          │
 └─────────────────────────────────────┘
 ```
 
@@ -220,7 +227,7 @@ CREATE TABLE inventory_log (
     order_id VARCHAR(36),
     product_id BIGINT,
     quantity INT,
-    action ENUM('RESERVE','RELEASE'),
+  action ENUM('RESERVE','RELEASE','MANUAL_SET'),
     timestamp TIMESTAMP
 );
 ```
@@ -235,6 +242,12 @@ CREATE TABLE payment (
     status ENUM('SUCCESS','FAILED') NOT NULL,
     payment_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE wallet (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  user_id BIGINT UNIQUE NOT NULL,
+  balance DECIMAL(10,2) NOT NULL
+);
 ```
 
 ---
@@ -244,6 +257,7 @@ CREATE TABLE payment (
 1. 使用 Saga 而非 2PC，降低阻塞风险并提升可用性。
 2. 引入 Payment Service，将库存确认与支付确认解耦。
 3. 通过 `order.cancelled` 事件驱动库存补偿，保持服务边界清晰。
+4. Dashboard 支持支付时间线、钱包等级提示、手动库存变更与测试数据一键清理，便于课堂演示与回归验证。
 
 ---
 
