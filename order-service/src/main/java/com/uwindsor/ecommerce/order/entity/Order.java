@@ -59,6 +59,7 @@ public class Order {
     public enum OrderStatus {
         PENDING,      // Order created, waiting for inventory confirmation
         CONFIRMED,    // Order confirmed, inventory reserved
+        PAID,         // Order is paid successfully
         CANCELLED,    // Order cancelled due to failure or user action
         FAILED        // Order processing failed permanently
     }

@@ -5,6 +5,7 @@ import com.uwindsor.ecommerce.order.dto.CreateOrderRequest;
 import com.uwindsor.ecommerce.order.dto.CreateOrderResponse;
 import com.uwindsor.ecommerce.order.entity.Order;
 import com.uwindsor.ecommerce.order.entity.SagaLog;
+import com.uwindsor.ecommerce.order.event.OrderCancelledEvent;
 import com.uwindsor.ecommerce.order.event.OrderCreatedEvent;
 import com.uwindsor.ecommerce.order.repository.OrderRepository;
 import com.uwindsor.ecommerce.order.repository.SagaLogRepository;
@@ -136,10 +137,9 @@ public class OrderService {
         // Update saga log
         SagaLog sagaLog = sagaLogRepository.findById(sagaId)
                 .orElseThrow(() -> new RuntimeException("Saga log not found: " + sagaId));
-        sagaLog.setCurrentStep("SAGA_COMPLETED");
-        sagaLog.setStatus(SagaLog.SagaStatus.COMPLETED);
+        sagaLog.setCurrentStep("AWAITING_PAYMENT");
         sagaLogRepository.save(sagaLog);
-        log.info("Saga completed successfully: {}", sagaId);
+        log.info("Saga waiting for payment: {}", sagaId);
     }
 
     /**
@@ -170,6 +170,55 @@ public class OrderService {
         sagaLog.setStatus(SagaLog.SagaStatus.COMPENSATED);
         sagaLogRepository.save(sagaLog);
         log.info("Saga compensated: {}", sagaId);
+    }
+
+    @Transactional
+    public void handlePaymentSuccess(String orderId) {
+        log.info("Handling payment success for order: {}", orderId);
+
+        Order order = orderRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
+
+        // Order is fully completed
+        order.setStatus(Order.OrderStatus.PAID);
+        orderRepository.save(order);
+
+        SagaLog sagaLog = sagaLogRepository.findById(order.getSagaId())
+                .orElseThrow(() -> new RuntimeException("Saga log not found: " + order.getSagaId()));
+        sagaLog.setCurrentStep("SAGA_COMPLETED");
+        sagaLog.setStatus(SagaLog.SagaStatus.COMPLETED);
+        sagaLogRepository.save(sagaLog);
+        log.info("Saga fully completed after payment: {}", order.getSagaId());
+    }
+
+    @Transactional
+    public void handlePaymentFailed(String orderId, String reason) {
+        log.error("Handling payment failure for order: {}, reason: {}", orderId, reason);
+
+        Order order = orderRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
+
+        order.setStatus(Order.OrderStatus.CANCELLED);
+        orderRepository.save(order);
+
+        SagaLog sagaLog = sagaLogRepository.findById(order.getSagaId())
+                .orElseThrow(() -> new RuntimeException("Saga log not found: " + order.getSagaId()));
+        sagaLog.setCurrentStep("COMPENSATING_INVENTORY");
+        sagaLog.setStatus(SagaLog.SagaStatus.COMPENSATED);
+        sagaLogRepository.save(sagaLog);
+
+        // Need to compensate inventory
+        OrderCancelledEvent event = OrderCancelledEvent.builder()
+                .sagaId(order.getSagaId())
+                .orderId(orderId)
+                .build();
+
+        rabbitTemplate.convertAndSend(
+                RabbitMQConfig.EVENT_EXCHANGE,
+                "order.cancelled",
+                event
+        );
+        log.info("OrderCancelledEvent published for order: {} to compensate inventory", orderId);
     }
 
     /**

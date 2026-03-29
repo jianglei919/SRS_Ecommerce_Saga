@@ -2,6 +2,7 @@ package com.uwindsor.ecommerce.inventory.service;
 
 import com.uwindsor.ecommerce.inventory.config.RabbitMQConfig;
 import com.uwindsor.ecommerce.inventory.dto.OrderCreatedEventDTO;
+import com.uwindsor.ecommerce.inventory.dto.OrderCancelledEventDTO;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
@@ -38,6 +39,26 @@ public class InventoryEventListener {
         } catch (Exception e) {
             log.error("Error processing OrderCreatedEvent", e);
             // In production, might want to publish to a dead-letter queue
+        }
+    }
+
+    /**
+     * Listen for OrderCancelledEvent
+     * Called when Order Service cancels an order
+     * Releases the inventory reserved for the order
+     *
+     * @param event Order cancelled event
+     */
+    @RabbitListener(queues = RabbitMQConfig.ORDER_CANCELLED_QUEUE)
+    public void handleOrderCancelled(OrderCancelledEventDTO event) {
+        log.info("Received OrderCancelledEvent for order: {}, saga: {}",
+                event.getOrderId(), event.getSagaId());
+
+        try {
+            // Release the inventory for the cancelled order
+            inventoryService.releaseInventory(event.getOrderId());
+        } catch (Exception e) {
+            log.error("Error processing OrderCancelledEvent", e);
         }
     }
 }

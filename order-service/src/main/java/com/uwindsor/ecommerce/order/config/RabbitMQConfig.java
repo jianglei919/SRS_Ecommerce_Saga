@@ -20,6 +20,8 @@ public class RabbitMQConfig {
     public static final String ORDER_CREATED_QUEUE = "order.created.queue";
     public static final String INVENTORY_RESERVED_QUEUE = "inventory.reserved.queue";
     public static final String INVENTORY_FAILED_QUEUE = "inventory.failed.queue";
+    public static final String PAYMENT_RESERVED_QUEUE = "payment.reserved.queue";
+    public static final String PAYMENT_FAILED_QUEUE = "payment.failed.queue";
 
     // Exchange name
     public static final String EVENT_EXCHANGE = "saga.events";
@@ -28,6 +30,8 @@ public class RabbitMQConfig {
     public static final String ORDER_CREATED_ROUTING_KEY = "order.created";
     public static final String INVENTORY_RESERVED_ROUTING_KEY = "inventory.reserved";
     public static final String INVENTORY_FAILED_ROUTING_KEY = "inventory.failed";
+    public static final String PAYMENT_RESERVED_ROUTING_KEY = "payment.reserved";
+    public static final String PAYMENT_FAILED_ROUTING_KEY = "payment.failed";
 
     /**
      * Order Created Queue - Published by Order Service for Inventory Service
@@ -51,6 +55,16 @@ public class RabbitMQConfig {
     @Bean
     public Queue inventoryFailedQueue() {
         return new Queue(INVENTORY_FAILED_QUEUE, true);
+    }
+
+    @Bean
+    public Queue paymentReservedQueue() {
+        return new Queue(PAYMENT_RESERVED_QUEUE, true);
+    }
+
+    @Bean
+    public Queue paymentFailedQueue() {
+        return new Queue(PAYMENT_FAILED_QUEUE, true);
     }
 
     /**
@@ -89,6 +103,20 @@ public class RabbitMQConfig {
         return BindingBuilder.bind(inventoryFailedQueue())
                 .to(eventExchange())
                 .with(INVENTORY_FAILED_ROUTING_KEY);
+    }
+
+    @Bean
+    public Binding paymentReservedBinding() {
+        return BindingBuilder.bind(paymentReservedQueue())
+                .to(eventExchange())
+                .with(PAYMENT_RESERVED_ROUTING_KEY);
+    }
+
+    @Bean
+    public Binding paymentFailedBinding() {
+        return BindingBuilder.bind(paymentFailedQueue())
+                .to(eventExchange())
+                .with(PAYMENT_FAILED_ROUTING_KEY);
     }
 
     /**

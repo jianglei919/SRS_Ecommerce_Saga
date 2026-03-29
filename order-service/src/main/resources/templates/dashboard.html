@@ -106,6 +106,7 @@
         .status-confirmed { background-color: #d4edda; color: #155724; }
         .status-cancelled { background-color: #f8d7da; color: #721c24; }
         .status-failed { background-color: #f5c6cb; color: #721c24; }
+        .status-paid { background-color: #d1e7dd; color: #0f5132; }
 
         .saga-status-started { background-color: #cfe2ff; color: #084298; }
         .saga-status-completed { background-color: #d1e7dd; color: #0f5132; }
@@ -441,6 +442,16 @@
 
                 let timeStr = order.createdAt ? new Date(new Date(order.createdAt).getTime() - 4 * 60 * 60 * 1000).toLocaleString() : '';
 
+                // Add payment action buttons if confirmed
+                let paymentHtml = '';
+                if (order.status === 'CONFIRMED') {
+                    paymentHtml = `
+                    <div class="mt-2">
+                        <button class="btn btn-sm btn-success" onclick="processPayment('${order.orderId}', 1000, 'SUCCESS')">Pay Success</button>
+                        <button class="btn btn-sm btn-danger" onclick="processPayment('${order.orderId}', 1000, 'FAILED')">Pay Fail</button>
+                    </div>`;
+                }
+
                 tbody.append(`
                     <tr>
                         <td>
@@ -450,6 +461,7 @@
                                 ${timeStr ? '<br><i class="fas fa-clock me-1"></i> ' + timeStr : ''}
                             </div>
                             ${itemsHtml}
+                            ${paymentHtml}
                         </td>
                         <td><span class="status-badge ${orderStatusClass}">${order.status}</span></td>
                         ${sagaHtml}
@@ -458,15 +470,30 @@
             });
         }
 
+        function processPayment(orderId, amount, status) {
+            $.ajax({
+                url: 'http://localhost:8083/api/payments/' + orderId + '?amount=' + amount + '&status=' + status,
+                type: 'POST',
+                success: function() {
+                    alert('Payment processed: ' + status);
+                    refreshDashboard();
+                },
+                error: function() {
+                    alert('Failed to process payment');
+                }
+            });
+        }
+
         function updateStatistics(orders) {
             let total = orders ? orders.length : 0;
             let confirmed = orders ? orders.filter(o => o.status === 'CONFIRMED').length : 0;
             let pending = orders ? orders.filter(o => o.status === 'PENDING').length : 0;
             let cancelled = orders ? orders.filter(o => o.status === 'CANCELLED').length : 0;
+            let paid = orders ? orders.filter(o => o.status === 'PAID').length : 0;
 
             // Animate counters if they changed (simple text update for now)
             $('#totalOrders').text(total);
-            $('#confirmedOrders').text(confirmed);
+            $('#confirmedOrders').text(confirmed + paid); // Include paid orders in confirmed stats or display separately (I'll group it here)
             $('#pendingOrders').text(pending);
             $('#cancelledOrders').text(cancelled);
         }

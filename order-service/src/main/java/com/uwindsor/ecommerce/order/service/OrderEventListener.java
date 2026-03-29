@@ -3,6 +3,8 @@ package com.uwindsor.ecommerce.order.service;
 import com.uwindsor.ecommerce.order.config.RabbitMQConfig;
 import com.uwindsor.ecommerce.order.event.InventoryReservedEvent;
 import com.uwindsor.ecommerce.order.event.InventoryReservationFailedEvent;
+import com.uwindsor.ecommerce.order.event.PaymentReservedEvent;
+import com.uwindsor.ecommerce.order.event.PaymentReservationFailedEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
@@ -72,6 +74,27 @@ public class OrderEventListener {
         } catch (Exception e) {
             log.error("Error processing InventoryReservationFailedEvent", e);
             // In production, might want to publish to a dead-letter queue
+        }
+    }
+
+    @RabbitListener(queues = RabbitMQConfig.PAYMENT_RESERVED_QUEUE)
+    public void handlePaymentReserved(PaymentReservedEvent event) {
+        log.info("Received PaymentReservedEvent for order: {}", event.getOrderId());
+        try {
+            orderService.handlePaymentSuccess(event.getOrderId());
+        } catch (Exception e) {
+            log.error("Error processing PaymentReservedEvent", e);
+        }
+    }
+
+    @RabbitListener(queues = RabbitMQConfig.PAYMENT_FAILED_QUEUE)
+    public void handlePaymentFailed(PaymentReservationFailedEvent event) {
+        log.warn("Received PaymentReservationFailedEvent for order: {}, reason: {}",
+                event.getOrderId(), event.getReason());
+        try {
+            orderService.handlePaymentFailed(event.getOrderId(), event.getReason());
+        } catch (Exception e) {
+            log.error("Error processing PaymentReservationFailedEvent", e);
         }
     }
 }

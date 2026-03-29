@@ -19,7 +19,7 @@ IF NOT EXISTS orders
     total_amount DECIMAL
 (10,2) NOT NULL COMMENT 'Total order amount',
     status ENUM
-('PENDING', 'CONFIRMED', 'CANCELLED', 'FAILED') DEFAULT 'PENDING' COMMENT 'Order status in saga',
+('PENDING', 'CONFIRMED', 'PAID', 'CANCELLED', 'FAILED') DEFAULT 'PENDING' COMMENT 'Order status in saga',
     saga_id VARCHAR
 (36) COMMENT 'Associated saga ID for tracking',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'Order creation timestamp',

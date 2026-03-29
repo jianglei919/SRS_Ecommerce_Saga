@@ -1,4 +1,4 @@
-package com.uwindsor.ecommerce.inventory.config;
+package com.uwindsor.ecommerce.payment.config;
 
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * RabbitMQ Configuration for Inventory Service
+ * RabbitMQ Configuration for Payment Service
  * Configures queues and exchanges for saga event communication
  */
 @Configuration
@@ -18,46 +18,39 @@ public class RabbitMQConfig {
 
     // Queue names
     public static final String ORDER_CREATED_QUEUE = "order.created.queue";
-    public static final String ORDER_CANCELLED_QUEUE = "order.cancelled.queue";
-    public static final String INVENTORY_RESERVED_QUEUE = "inventory.reserved.queue";
-    public static final String INVENTORY_FAILED_QUEUE = "inventory.failed.queue";
+    public static final String PAYMENT_RESERVED_QUEUE = "payment.reserved.queue";
+    public static final String PAYMENT_FAILED_QUEUE = "payment.failed.queue";
 
     // Exchange name
     public static final String EVENT_EXCHANGE = "saga.events";
 
     // Routing keys
     public static final String ORDER_CREATED_ROUTING_KEY = "order.created";
-    public static final String ORDER_CANCELLED_ROUTING_KEY = "order.cancelled";
-    public static final String INVENTORY_RESERVED_ROUTING_KEY = "inventory.reserved";
-    public static final String INVENTORY_FAILED_ROUTING_KEY = "inventory.failed";
+    public static final String PAYMENT_RESERVED_ROUTING_KEY = "payment.reserved";
+    public static final String PAYMENT_FAILED_ROUTING_KEY = "payment.failed";
 
     /**
-     * Order Created Queue - Consumed by Inventory Service from Order Service
+     * Order Created Queue - Consumed by Payment Service from Order Service
      */
     @Bean
     public Queue orderCreatedQueue() {
         return new Queue(ORDER_CREATED_QUEUE, true);
     }
 
+    /**
+     * Payment Reserved Queue - Published by Payment Service
+     */
     @Bean
-    public Queue orderCancelledQueue() {
-        return new Queue(ORDER_CANCELLED_QUEUE, true);
+    public Queue paymentReservedQueue() {
+        return new Queue(PAYMENT_RESERVED_QUEUE, true);
     }
 
     /**
-     * Inventory Reserved Queue - Published by Inventory Service
+     * Payment Failed Queue - Published by Payment Service
      */
     @Bean
-    public Queue inventoryReservedQueue() {
-        return new Queue(INVENTORY_RESERVED_QUEUE, true);
-    }
-
-    /**
-     * Inventory Failed Queue - Published by Inventory Service
-     */
-    @Bean
-    public Queue inventoryFailedQueue() {
-        return new Queue(INVENTORY_FAILED_QUEUE, true);
+    public Queue paymentFailedQueue() {
+        return new Queue(PAYMENT_FAILED_QUEUE, true);
     }
 
     /**
@@ -78,31 +71,24 @@ public class RabbitMQConfig {
                 .with(ORDER_CREATED_ROUTING_KEY);
     }
 
+    /**
+     * Binding: Payment Reserved Event
+     */
     @Bean
-    public Binding orderCancelledBinding() {
-        return BindingBuilder.bind(orderCancelledQueue())
+    public Binding paymentReservedBinding() {
+        return BindingBuilder.bind(paymentReservedQueue())
                 .to(eventExchange())
-                .with(ORDER_CANCELLED_ROUTING_KEY);
+                .with(PAYMENT_RESERVED_ROUTING_KEY);
     }
 
     /**
-     * Binding: Inventory Reserved Event
+     * Binding: Payment Failed Event
      */
     @Bean
-    public Binding inventoryReservedBinding() {
-        return BindingBuilder.bind(inventoryReservedQueue())
+    public Binding paymentFailedBinding() {
+        return BindingBuilder.bind(paymentFailedQueue())
                 .to(eventExchange())
-                .with(INVENTORY_RESERVED_ROUTING_KEY);
-    }
-
-    /**
-     * Binding: Inventory Failed Event
-     */
-    @Bean
-    public Binding inventoryFailedBinding() {
-        return BindingBuilder.bind(inventoryFailedQueue())
-                .to(eventExchange())
-                .with(INVENTORY_FAILED_ROUTING_KEY);
+                .with(PAYMENT_FAILED_ROUTING_KEY);
     }
 
     /**
