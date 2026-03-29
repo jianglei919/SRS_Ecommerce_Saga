@@ -163,6 +163,11 @@ flowchart LR
 **Orchestration-Based Saga Flow**
 
 ```mermaid
+---
+config:
+  theme: redux-color
+  look: neo
+---
 sequenceDiagram
     autonumber
     participant User as User (Web UI)
