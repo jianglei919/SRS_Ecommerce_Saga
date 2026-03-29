@@ -30,6 +30,9 @@ public class Inventory {
     @Column(nullable = false)
     private Integer reserved;
 
+    @Column(nullable = false)
+    private Integer price;
+
     /**
      * Calculate available stock (total - reserved)
      */

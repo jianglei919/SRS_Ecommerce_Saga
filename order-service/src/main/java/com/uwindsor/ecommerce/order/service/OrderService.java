@@ -66,7 +66,7 @@ public class OrderService {
         productNameMap.put(4L, "Apple Watch");
 
         String productNames = request.getItems().stream()
-                .map(item -> productNameMap.getOrDefault(item.getProductId(), "Product " + item.getProductId()))
+                .map(item -> productNameMap.getOrDefault(item.getProductId(), "Product " + item.getProductId()) + " (" + item.getQuantity() + ")")
                 .collect(Collectors.joining(", "));
 
         // Step 1: Create order locally with PENDING status (local ACID transaction)

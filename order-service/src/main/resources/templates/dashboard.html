@@ -184,7 +184,6 @@
 <body>
     <div class="dashboard-header text-center">
         <h1><i class="fas fa-shopping-cart me-2"></i> E-Commerce Saga Dashboard</h1>
-        <p class="mb-0 text-white-50">Real-time Order Processing & Choreographed Saga Monitoring</p>
     </div>
 
     <div class="dashboard-container">
@@ -249,22 +248,34 @@
                 <div class="row align-items-center">
                     <div class="col-md-6 border-end">
                         <label class="form-label text-muted fw-bold">Happy Path (Successful Order)</label>
-                        <div class="mb-2">
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input product-check" type="checkbox" value="1" id="prod1" checked>
-                                <label class="form-check-label" for="prod1">iPhone 16</label>
+                        <div class="mb-2 d-flex flex-wrap gap-3">
+                            <div class="d-flex align-items-center">
+                                <div class="form-check me-2 mb-0">
+                                    <input class="form-check-input product-check" type="checkbox" value="1" id="prod1" checked>
+                                    <label class="form-check-label" for="prod1">iPhone 16</label>
+                                </div>
+                                <input type="number" id="qty1" class="form-control form-control-sm" style="width: 60px;" value="1" min="1">
                             </div>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input product-check" type="checkbox" value="2" id="prod2">
-                                <label class="form-check-label" for="prod2">MacBook Pro</label>
+                            <div class="d-flex align-items-center">
+                                <div class="form-check me-2 mb-0">
+                                    <input class="form-check-input product-check" type="checkbox" value="2" id="prod2">
+                                    <label class="form-check-label" for="prod2">MacBook Pro</label>
+                                </div>
+                                <input type="number" id="qty2" class="form-control form-control-sm" style="width: 60px;" value="1" min="1">
                             </div>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input product-check" type="checkbox" value="3" id="prod3">
-                                <label class="form-check-label" for="prod3">iPad Air</label>
+                            <div class="d-flex align-items-center">
+                                <div class="form-check me-2 mb-0">
+                                    <input class="form-check-input product-check" type="checkbox" value="3" id="prod3">
+                                    <label class="form-check-label" for="prod3">iPad Air</label>
+                                </div>
+                                <input type="number" id="qty3" class="form-control form-control-sm" style="width: 60px;" value="1" min="1">
                             </div>
-                            <div class="form-check form-check-inline">
-                                <input class="form-check-input product-check" type="checkbox" value="4" id="prod4">
-                                <label class="form-check-label" for="prod4">Apple Watch</label>
+                            <div class="d-flex align-items-center">
+                                <div class="form-check me-2 mb-0">
+                                    <input class="form-check-input product-check" type="checkbox" value="4" id="prod4">
+                                    <label class="form-check-label" for="prod4">Apple Watch</label>
+                                </div>
+                                <input type="number" id="qty4" class="form-control form-control-sm" style="width: 60px;" value="1" min="1">
                             </div>
                         </div>
                         <div class="input-group">
@@ -465,7 +476,9 @@
 
             let items = [];
             $('.product-check:checked').each(function() {
-                items.push({ productId: parseInt($(this).val()), quantity: 1 });
+                let pid = $(this).val();
+                let qty = parseInt($('#qty' + pid).val()) || 1;
+                items.push({ productId: parseInt(pid), quantity: qty });
             });
 
             if (items.length === 0) {
