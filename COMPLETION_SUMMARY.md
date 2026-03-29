@@ -26,7 +26,7 @@
 
 #### Order Service 数据模型
 
-- ✅ `Order.java` - 订单实体 (PENDING/CONFIRMED/CANCELLED/FAILED)
+- ✅ `Order.java` - 订单实体 (PENDING/CONFIRMED/PAID/CANCELLED/FAILED)
 - ✅ `SagaLog.java` - Saga执行日志实体
 - ✅ `OrderRepository.java` - 数据访问层
 - ✅ `SagaLogRepository.java` - 日志数据访问层
@@ -86,6 +86,31 @@
 
 ---
 
+#### Payment Service (响应 - 支付微服务)
+
+- ✅ `PaymentServiceApplication.java` - Spring Boot主应用
+- ✅ `PaymentController.java` - 支付回传API (`POST /api/payments/{orderId}`)
+- ✅ `PaymentService.java` - 支付结果处理与事件发布逻辑
+  - `processPaymentResult()` - 处理SUCCESS/FAILED结果
+  - 发布 `PaymentReservedEvent` / `PaymentReservationFailedEvent`
+
+#### Payment Service 数据模型
+
+- ✅ `Payment.java` - 支付实体 (SUCCESS/FAILED)
+- ✅ `PaymentRepository.java` - 数据访问层
+
+#### Payment Service 事件定义
+
+- ✅ `PaymentReservedEvent.java` - 支付成功事件
+- ✅ `PaymentReservationFailedEvent.java` - 支付失败事件
+
+#### Payment Service 配置
+
+- ✅ `RabbitMQConfig.java` - RabbitMQ配置
+- ✅ `application.yml` - Spring Boot配置
+
+---
+
 ### 🎨 前端UI
 
 - ✅ `dashboard.html` - 实时仪表板 (Thymeleaf + Bootstrap 5)
@@ -104,14 +129,17 @@
   - RabbitMQ (3.13-management)
   - MySQL Order DB (3306)
   - MySQL Inventory DB (3307)
+  - MySQL Payment DB (3308)
   - Order Service (8080)
   - Inventory Service (8081)
+  - Payment Service (8083)
   - 健康检查配置
   - 网络隔离
   - 卷挂载
 
 - ✅ `order-service/Dockerfile` - 多阶段构建
 - ✅ `inventory-service/Dockerfile` - 多阶段构建
+- ✅ `payment-service/Dockerfile` - 多阶段构建
 
 ---
 
@@ -127,6 +155,10 @@
   - InventoryLog表（带索引）
   - 初始数据：iPhone 16, MacBook Pro, iPad Air, Apple Watch
 
+- ✅ `payment-service/src/main/resources/schema.sql`
+  - Payment表（带索引）
+  - SUCCESS/FAILED 支付记录
+
 ---
 
 ### 📄 构建配置
@@ -139,6 +171,7 @@
 
 - ✅ `order-service/pom.xml` - Order Service模块POM
 - ✅ `inventory-service/pom.xml` - Inventory Service模块POM
+- ✅ `payment-service/pom.xml` - Payment Service模块POM
 
 ---
 
@@ -207,9 +240,10 @@
 - ✅ **FR-01**: 订单创建 - 用户可通过REST API创建订单
 - ✅ **FR-02**: Saga编排 - Order Service自动编排分布式事务
 - ✅ **FR-03**: 库存预留 - Inventory Service执行库存预留
-- ✅ **FR-04**: 补偿/回滚 - 故障时自动触发补偿逻辑
-- ✅ **FR-05**: 实时仪表板 - Web UI显示订单、Saga进度、统计信息
-- ✅ **FR-06**: 日志监控 - saga_log表记录所有步骤
+- ✅ **FR-04**: 支付预留 - Payment Service执行支付结果回传
+- ✅ **FR-05**: 补偿/回滚 - 库存或支付失败均可自动补偿
+- ✅ **FR-06**: 实时仪表板 - Web UI显示订单、Saga进度、统计信息
+- ✅ **FR-07**: 日志监控 - saga_log表记录所有步骤
 
 ### 非功能需求 ✅
 
@@ -241,7 +275,15 @@ Inventory Service 收到
   ↓
 Order Service 收到
   ↓
-订单状态更新: CONFIRMED
+订单状态更新: CONFIRMED (等待支付)
+  ↓
+Payment Service 收到支付成功
+  ↓
+发布 PaymentReservedEvent
+  ↓
+Order Service 收到
+  ↓
+订单状态更新: PAID
 Saga 状态: COMPLETED
   ↓
 ✅ 成功！
@@ -272,6 +314,25 @@ Saga 状态: COMPENSATED
 ✅ 补偿成功！
 ```
 
+### ✅ Payment Failure Compensation (支付失败补偿)
+
+```
+用户 → Payment Service(FAILED)
+  ↓
+发布 PaymentReservationFailedEvent
+  ↓
+Order Service 收到
+  ↓
+发布 OrderCancelledEvent
+  ↓
+Inventory Service 释放预留库存
+  ↓
+Order状态: CANCELLED
+Saga状态: COMPENSATED
+  ↓
+✅ 补偿成功！
+```
+
 ---
 
 ## 🧪 测试覆盖
@@ -282,12 +343,14 @@ Saga 状态: COMPENSATED
 - ✅ GET /api/orders/{id} - 查询订单
 - ✅ GET /dashboard - 仪表板页面
 - ✅ GET /api/dashboard/data - 仪表板数据API
+- ✅ POST /api/payments/{orderId} - 支付结果回传
 
 ### 场景测试 ✅
 
 - ✅ Scenario 1: 成功创建订单2个
 - ✅ Scenario 2: 库存不足导致补偿
-- ✅ Scenario 3: 并发订单处理
+- ✅ Scenario 3: 支付失败补偿回滚库存
+- ✅ Scenario 4: 并发订单处理
 
 ### 数据库测试 ✅
 
@@ -326,6 +389,14 @@ Saga 状态: COMPENSATED
   - 索引: order_id, product_id, action, timestamp
 ```
 
+### Payment DB (payment_db)
+
+```
+✅ payment 表 (5字段)
+  - id, order_id, amount, status, payment_time
+  - 索引: order_id
+```
+
 ---
 
 ## 🔧 依赖版本
@@ -360,6 +431,7 @@ docker compose up --build
 - 📊 Dashboard: http://localhost:8080/dashboard
 - 📮 RabbitMQ: http://localhost:15672
 - 🔌 API: http://localhost:8080/api/orders
+- 💳 Payment API: http://localhost:8083/api/payments
 
 ### 清理
 
@@ -373,7 +445,7 @@ docker compose down -v
 
 ### 代码统计
 
-- **Java文件**: 20+ 个
+- **Java文件**: 28+ 个
 - **总代码行数**: 3000+ 行
 - **配置文件**: 10+ 个
 - **文档**: 4个 (10000+ 字)
@@ -382,8 +454,8 @@ docker compose down -v
 
 ```
 根目录
-├── 2 个微服务模块
-├── 2 个MySQL数据库
+├── 3 个微服务模块
+├── 3 个MySQL数据库
 ├── 1 个RabbitMQ实例
 ├── 1 个Thymeleaf仪表板
 ├── 1个Docker Compose配置
@@ -397,9 +469,10 @@ docker compose down -v
 
 1. **完整的Saga实现**
    - ✅ 编排型Saga模式
-   - ✅ 完整的Happy Path
-   - ✅ 完整的Compensation Path
-   - ✅ 状态追踪和日志
+
+- ✅ 完整的Happy Path（库存+支付）
+- ✅ 完整的Compensation Path（库存失败/支付失败）
+- ✅ 状态追踪和日志
 
 2. **生产级代码**
    - ✅ 详细的代码注释

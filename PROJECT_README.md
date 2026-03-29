@@ -9,6 +9,7 @@ This project implements a **microservices-based e-commerce checkout system** tha
 ### Key Features
 
 - ✅ **Saga Orchestration**: Order Service acts as the orchestrator
+- ✅ **Payment Stage**: Payment Service finalizes or fails the order
 - ✅ **Event-Driven**: RabbitMQ for asynchronous communication
 - ✅ **Compensation Logic**: Automatic rollback on failures
 - ✅ **Real-Time Dashboard**: Live monitoring of orders and saga progress
@@ -18,28 +19,32 @@ This project implements a **microservices-based e-commerce checkout system** tha
 ## 🏗️ System Architecture
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                     Client (Web UI)                      │
-└────────────────────────┬────────────────────────────────┘
-                         │
-         ┌───────────────┼───────────────┐
-         │               │               │
-    ┌────▼────────┐  ┌──▼──────────┐  ┌─▼────────────┐
-    │ Order DB    │  │ RabbitMQ    │  │  Dashboard   │
-    │ (MySQL)     │  │ (AMQP)      │  │  (Thymeleaf) │
-    └─────────────┘  └──┬──────────┘  └──────────────┘
-                        │
-         ┌──────────────┼──────────────┐
-         │              │              │
-    ┌────▼──────────┐  ┌▼─────────┐
-    │ Order Service │  │ Inventory │
-    │ (Port 8080)   │  │ Service   │
-    └────┬──────────┘  │ (Port 8081)
-         │             └──────┬───┘
-    ┌────▼──────────┐     ┌──▼──────────┐
-    │ Order DB      │     │ Inventory DB│
-    │ (MySQL 3306)  │     │ (MySQL 3307)│
-    └───────────────┘     └─────────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          Client (Web UI / API)                          │
+└───────────────────────────────┬─────────────────────────────────────────┘
+              │
+        ┌──────────────┼──────────────┐
+        │              │              │
+     ┌─────▼─────┐  ┌─────▼─────┐  ┌────▼──────────┐
+     │   Order   │  │ Inventory │  │   Payment     │
+     │ Service   │  │ Service   │  │   Service     │
+     │   8080    │  │   8081    │  │    8083       │
+     └─────┬─────┘  └─────┬─────┘  └────┬──────────┘
+        │              │             │
+      ┌───────▼──────────────▼─────────────▼─────────┐
+      │            RabbitMQ Topic Exchange             │
+      │                  saga.events                   │
+      └─────────┬──────────────────┬──────────────────┘
+          │                  │
+    ┌────────▼───────┐  ┌──────▼────────┐
+    │ Queue Groups   │  │ Queue Groups  │
+    │ order/inventory│  │ payment/cancel│
+    └────────────────┘  └───────────────┘
+
+   ┌─────────────┐   ┌───────────────┐   ┌──────────────┐
+   │  order_db   │   │ inventory_db  │   │  payment_db  │
+   │   (3306)    │   │    (3307)     │   │    (3308)    │
+   └─────────────┘   └───────────────┘   └──────────────┘
 ```
 
 ## 📋 Saga Flow
@@ -50,7 +55,10 @@ This project implements a **microservices-based e-commerce checkout system** tha
 2. **OrderCreatedEvent** → Published to RabbitMQ
 3. **Inventory Reservation** → Inventory Service reserves stock
 4. **InventoryReservedEvent** → Published back to Order Service
-5. **Order Confirmed** → Order status → CONFIRMED
+5. **Order Confirmed** → Order status → CONFIRMED (awaiting payment)
+6. **Payment API** → Payment Service records payment result
+7. **PaymentReservedEvent** → Published back to Order Service
+8. **Order Paid** → Order status → PAID and saga completed
 
 ### Compensation Path (Failure)
 
@@ -59,6 +67,14 @@ This project implements a **microservices-based e-commerce checkout system** tha
 3. **Insufficient Stock** → Inventory Service detects failure
 4. **InventoryReservationFailedEvent** → Published back to Order Service
 5. **Order Cancelled** → Order status → CANCELLED (Compensation triggered)
+
+### Compensation Path (Payment Failure)
+
+1. **Inventory already reserved** → Order status is CONFIRMED
+2. **Payment failed** → Payment Service publishes `PaymentReservationFailedEvent`
+3. **Order Service compensates** → Publishes `OrderCancelledEvent`
+4. **Inventory rollback** → Inventory Service releases reserved stock
+5. **Order Cancelled** → Order status → CANCELLED
 
 ## 🚀 Quick Start
 
@@ -87,6 +103,7 @@ docker compose up --build
 - 📮 **RabbitMQ UI**: http://localhost:15672 (guest/guest)
 - 🔧 **Order API**: http://localhost:8080/api/orders
 - 📦 **Inventory API**: http://localhost:8081/api/inventory
+- 💳 **Payment API**: http://localhost:8083/api/payments
 
 ### Option 2: Local Development
 
@@ -108,6 +125,11 @@ docker run -d -p 3307:3306 \
   -e MYSQL_DATABASE=inventory_db \
   mysql:8.0
 
+docker run -d -p 3308:3306 \
+  -e MYSQL_ROOT_PASSWORD=root \
+  -e MYSQL_DATABASE=payment_db \
+  mysql:8.0
+
 # 3. Build project
 mvn clean install -DskipTests
 
@@ -117,6 +139,10 @@ mvn spring-boot:run
 
 # 5. In another terminal, start Inventory Service
 cd inventory-service
+mvn spring-boot:run
+
+# 6. In another terminal, start Payment Service
+cd payment-service
 mvn spring-boot:run
 ```
 
@@ -165,6 +191,18 @@ curl http://localhost:8080/api/orders/ORD-A1B2C3D4
 }
 ```
 
+### Process Payment Result
+
+```bash
+curl -X POST "http://localhost:8083/api/payments/ORD-A1B2C3D4?amount=1000&status=SUCCESS"
+```
+
+Or trigger payment failure:
+
+```bash
+curl -X POST "http://localhost:8083/api/payments/ORD-A1B2C3D4?amount=1000&status=FAILED"
+```
+
 ### Dashboard Access
 
 Navigate to: **http://localhost:8080/dashboard**
@@ -210,6 +248,23 @@ SRS_Ecommerce_Saga/
 │   │       ├── InventoryServiceApplication.java
 │   │       ├── config/              # RabbitMQ configuration
 │   │       ├── entity/              # JPA entities (Inventory, InventoryLog)
+│   │       ├── repository/          # Data access layer
+│   │       ├── service/             # Business logic
+│   │       ├── event/               # Event classes
+│   │       └── dto/                 # Data transfer objects
+│   └── src/main/resources/
+│       ├── application.yml
+│       └── schema.sql
+│
+├── payment-service/                 # Payment Service microservice
+│   ├── pom.xml
+│   ├── Dockerfile
+│   ├── src/main/java/
+│   │   └── com/uwindsor/ecommerce/payment/
+│   │       ├── PaymentServiceApplication.java
+│   │       ├── config/              # RabbitMQ configuration
+│   │       ├── controller/          # REST endpoints
+│   │       ├── entity/              # JPA entity (Payment)
 │   │       ├── repository/          # Data access layer
 │   │       ├── service/             # Business logic
 │   │       ├── event/               # Event classes
@@ -268,22 +323,37 @@ CREATE TABLE inventory_log (
 );
 ```
 
+### Payment Database (payment_db)
+
+```sql
+CREATE TABLE payment (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  order_id VARCHAR(36) NOT NULL,
+  amount DECIMAL(10,2) NOT NULL,
+  status ENUM('SUCCESS','FAILED') NOT NULL,
+  payment_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
 ## 🧪 Testing
 
 ### Using Postman
 
 1. Import [`Postman_Collection.json`](./Postman_Collection.json)
 2. Run requests in this order:
-   - **Create Order (Happy Path)** - Watch status change to CONFIRMED
-   - **Create Order (Insufficient Stock)** - Watch status change to CANCELLED
-   - **Get Dashboard Data** - View saga progress
+
+- **Create Order (Happy Path)** - Watch status change to CONFIRMED
+- **Process Payment Success** - Watch status change to PAID
+- **Create Order (Insufficient Stock)** - Watch status change to CANCELLED
+- **Process Payment Failed** - Watch inventory compensation and CANCELLED
+- **Get Dashboard Data** - View saga progress
 
 ### Test Scenarios
 
 #### Scenario 1: Happy Path ✅
 
-- Create order with available inventory
-- Expected: Order → PENDING → CONFIRMED
+- Create order with available inventory + payment success
+- Expected: Order → PENDING → CONFIRMED → PAID
 - Saga: STARTED → COMPLETED
 
 #### Scenario 2: Compensation ⚠️
@@ -292,7 +362,14 @@ CREATE TABLE inventory_log (
 - Expected: Order → PENDING → CANCELLED
 - Saga: STARTED → COMPENSATED
 
-#### Scenario 3: Concurrent Orders 🔄
+#### Scenario 3: Payment Failure Compensation ⚠️
+
+- Create order with available inventory
+- Trigger payment with `status=FAILED`
+- Expected: Order → CONFIRMED → CANCELLED
+- Inventory reserved quantity is rolled back
+
+#### Scenario 4: Concurrent Orders 🔄
 
 - Create multiple orders rapidly
 - Expected: All processed correctly with proper inventory management
@@ -361,6 +438,9 @@ docker logs saga-order-service -f
 # Inventory Service logs
 docker logs saga-inventory-service -f
 
+# Payment Service logs
+docker logs saga-payment-service -f
+
 # RabbitMQ logs
 docker logs saga-rabbitmq -f
 ```
@@ -389,6 +469,12 @@ mysql -h localhost -P 3307 -u root -proot inventory_db
 # View inventory
 SELECT * FROM inventory;
 SELECT * FROM inventory_log ORDER BY timestamp DESC;
+
+# Connect to Payment DB
+mysql -h localhost -P 3308 -u root -proot payment_db
+
+# View payments
+SELECT * FROM payment ORDER BY payment_time DESC;
 ```
 
 ## 🚨 Troubleshooting
@@ -399,9 +485,11 @@ SELECT * FROM inventory_log ORDER BY timestamp DESC;
 # Check if ports are in use
 lsof -i :8080
 lsof -i :8081
+lsof -i :8083
 lsof -i :5672
 lsof -i :3306
 lsof -i :3307
+lsof -i :3308
 
 # Kill process if needed
 kill -9 <PID>
@@ -423,6 +511,7 @@ docker logs saga-rabbitmq
 # Test MySQL connection
 mysql -h localhost -P 3306 -u root -proot -e "SELECT 1"
 mysql -h localhost -P 3307 -u root -proot -e "SELECT 1"
+mysql -h localhost -P 3308 -u root -proot -e "SELECT 1"
 ```
 
 ### Clean slate restart
@@ -444,7 +533,7 @@ docker compose up --build
 2. **Event Sourcing**: Events as primary source of truth
 3. **Compensation Transactions**: Automatic rollback on failures
 4. **Eventual Consistency**: System becomes consistent after saga completion
-5. **Microservices**: Independent services with separate databases
+5. **Microservices**: Independent services with separate databases (Order/Inventory/Payment)
 6. **Asynchronous Communication**: RabbitMQ for decoupling
 7. **Idempotency**: Safe to replay events
 8. **Distributed Tracing**: Saga IDs for tracking across services

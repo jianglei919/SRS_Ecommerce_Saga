@@ -18,6 +18,7 @@ A customer places an order for products (e.g., iPhone, laptop). The system must:
 
 - Create an order immediately
 - Reserve inventory asynchronously
+- Reserve payment asynchronously
 - Confirm or cancel the order
 - Handle failures gracefully with compensating transactions
 
@@ -49,12 +50,19 @@ A customer places an order for products (e.g., iPhone, laptop). The system must:
 - Publish `InventoryReservedEvent` (success) or `InventoryReservationFailedEvent` (failure)
 - On compensation: release reserved inventory
 
-**FR-04: Compensation / Rollback**
+**FR-04: Payment Reservation (Payment Service)**
+
+- Listen for successful inventory stage (manual trigger through payment API)
+- Reserve payment (local ACID transaction)
+- Publish `PaymentReservedEvent` (success) or `PaymentReservationFailedEvent` (failure)
+- On failure: trigger compensation (`OrderCancelledEvent`) to release inventory
+
+**FR-05: Compensation / Rollback**
 
 - Full saga compensation logic for every failure point
 - Example: Inventory fails → Order Service cancels the order and logs it
 
-**FR-05: Visual Demonstration Dashboard**
+**FR-06: Visual Demonstration Dashboard**
 
 - Real-time view of:
   - Order status (Order DB)
@@ -62,7 +70,7 @@ A customer places an order for products (e.g., iPhone, laptop). The system must:
   - Saga log
 - Button to “Simulate Failure” (e.g., temporarily stop Inventory Service)
 
-**FR-06: Logging & Monitoring**
+**FR-07: Logging & Monitoring**
 
 - Every saga step logged in `saga_log` table
 - RabbitMQ management UI accessible
@@ -92,8 +100,9 @@ A customer places an order for products (e.g., iPhone, laptop). The system must:
 - **Microservices**:
   - Order Service (Port 8080)
   - Inventory Service (Port 8081)
+  - Payment Service (Port 8083)
 - **Communication**: RabbitMQ (AMQP) – Event-Driven
-- **Database**: Database-per-Service (2 separate MySQL instances)
+- **Database**: Database-per-Service (3 separate MySQL instances)
 - **Containerization**: Docker + Docker Compose
 
 **Required Diagrams**:
@@ -116,6 +125,11 @@ flowchart LR
         ISL["Inventory Logic"]
         IDB[("Inventory Database<br>inventory_db<br>MySQL 3307")]
   end
+ subgraph subGraph2["Payment Service (Port 8083)"]
+    PL["Payment Controller"]
+    PSL["Payment Logic"]
+    PDB[("Payment Database<br>payment_db<br>MySQL 3308")]
+  end
     Client["Web UI<br>Thymeleaf + Bootstrap"] --> OC
     OC --> SO
     SO --> ODB
@@ -123,6 +137,9 @@ flowchart LR
     RMQ --> IL
     IL --> ISL
     ISL --> IDB
+    RMQ --> PL
+    PL --> PSL
+    PSL --> PDB
 
      Client:::client
      OC:::order
@@ -131,10 +148,14 @@ flowchart LR
      IL:::inventory
      ISL:::inventory
      IDB:::database
+     PL:::payment
+     PSL:::payment
+     PDB:::database
      RMQ:::mq
     classDef client fill:#f3e8ff,stroke:#6b21a8,stroke-width:2px
     classDef order fill:#dbeafe,stroke:#1e40af,stroke-width:3px
     classDef inventory fill:#ede9fe,stroke:#4c1d95,stroke-width:3px
+    classDef payment fill:#fee2e2,stroke:#b91c1c,stroke-width:3px
     classDef database fill:#ecfdf5,stroke:#0f766e,stroke-width:2px
     classDef mq fill:#fef3c7,stroke:#b45309,stroke-width:3px
 ```
@@ -148,6 +169,7 @@ sequenceDiagram
     participant OS as Order Service<br/>(Saga Orchestrator)
     participant RMQ as RabbitMQ
     participant IS as Inventory Service
+    participant PS as Payment Service
 
     User->>OS: POST /api/orders
     OS->>OS: Local Transaction<br/>Create Order (PENDING)
@@ -157,14 +179,25 @@ sequenceDiagram
     alt Success Path
         IS->>RMQ: Publish InventoryReservedEvent
         RMQ->>OS: Consume Success Event
-        OS->>OS: Update Order → CONFIRMED
-        OS->>OS: Complete Saga
+      OS->>OS: Update Order → CONFIRMED (awaiting payment)
+      User->>PS: POST /api/payments/{orderId}?status=SUCCESS
+      PS->>RMQ: Publish PaymentReservedEvent
+      RMQ->>OS: Consume PaymentReservedEvent
+      OS->>OS: Update Order → PAID
+      OS->>OS: Complete Saga (COMPLETED)
     else Failure Path
+      alt Inventory Failed
         IS->>RMQ: Publish InventoryReservationFailedEvent
         RMQ->>OS: Trigger Compensation
         OS->>OS: Update Order → CANCELLED
-        OS->>RMQ: Publish Compensation Event
+      else Payment Failed
+        User->>PS: POST /api/payments/{orderId}?status=FAILED
+        PS->>RMQ: Publish PaymentReservationFailedEvent
+        RMQ->>OS: Trigger Compensation
+        OS->>RMQ: Publish OrderCancelledEvent
         RMQ->>IS: Release Reserved Stock
+        OS->>OS: Update Order → CANCELLED
+      end
     end
 ```
 
@@ -257,6 +290,21 @@ CREATE TABLE inventory_log (
 );
 ```
 
+### Payment Database (payment_db):
+
+```sql
+CREATE DATABASE payment_db;
+USE payment_db;
+
+CREATE TABLE payment (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  order_id VARCHAR(36) NOT NULL,
+  amount DECIMAL(10,2) NOT NULL,
+  status ENUM('SUCCESS', 'FAILED') NOT NULL,
+  payment_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
 **Initial Data**:
 
 - product_id=1, name='iPhone 16', stock=1000
@@ -303,9 +351,30 @@ CREATE TABLE inventory_log (
 }
 ```
 
+**PaymentReservedEvent**
+
+```json
+{
+  "sagaId": "uuid-string",
+  "orderId": "ORD-123456",
+  "success": true
+}
+```
+
+**PaymentReservationFailedEvent**
+
+```json
+{
+  "sagaId": "uuid-string",
+  "orderId": "ORD-123456",
+  "success": false,
+  "reason": "Payment failed at frontend"
+}
+```
+
 ---
 
-## 7. API Endpoints (Order Service) – With Examples
+## 7. API Endpoints (Order + Payment Services) – With Examples
 
 - `POST /api/orders`
 
@@ -332,6 +401,11 @@ CREATE TABLE inventory_log (
 - `GET /api/dashboard`
   Real-time demo page (auto-refresh every 2 seconds)
 
+- `POST /api/payments/{orderId}?amount=1000&status=SUCCESS`
+  Reserve payment and publish payment success event
+- `POST /api/payments/{orderId}?amount=1000&status=FAILED`
+  Publish payment failure event and trigger compensation
+
 ---
 
 ## 8. Saga Step-by-Step Logic (Critical – Detailed)
@@ -342,7 +416,10 @@ CREATE TABLE inventory_log (
 2. Publish `OrderCreatedEvent` to RabbitMQ
 3. Inventory Service → local transaction: reserve stock (`reserved += quantity`)
 4. Publish `InventoryReservedEvent`
-5. Order Service → update order status to `CONFIRMED` and complete saga
+5. Order Service → update order status to `CONFIRMED` (awaiting payment)
+6. Payment Service → local transaction: reserve payment
+7. Publish `PaymentReservedEvent`
+8. Order Service → update order status to `PAID` and complete saga
 
 **Compensation Path** (must be fully implemented)
 
@@ -350,6 +427,7 @@ CREATE TABLE inventory_log (
   - Update order status to `CANCELLED`
   - Publish compensation event
 - Inventory Service receives compensation → release reserved stock (`reserved -= quantity`)
+- Payment failure path: Payment Service publishes `PaymentReservationFailedEvent`, Order Service publishes `OrderCancelledEvent`
 - All steps must be logged in `saga_log` table
 
 ---
@@ -357,7 +435,6 @@ CREATE TABLE inventory_log (
 ## 9. Docker Compose Requirements (Full Sample)
 
 ```YMAL
-version: '3.8'
 services:
   rabbitmq:
     image: rabbitmq:3.13-management
@@ -378,6 +455,13 @@ services:
       MYSQL_DATABASE: inventory_db
     ports:
       - "3307:3306"
+  payment-db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: payment_db
+    ports:
+      - "3308:3306"
   order-service:
     build: ./order-service
     ports:
@@ -391,6 +475,13 @@ services:
       - "8081:8081"
     depends_on:
       - inventory-db
+      - rabbitmq
+  payment-service:
+    build: ./payment-service
+    ports:
+      - "8083:8083"
+    depends_on:
+      - payment-db
       - rabbitmq
 ```
 

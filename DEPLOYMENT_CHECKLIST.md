@@ -20,10 +20,12 @@
   # 这些端口应该是空闲的
   lsof -i :8080   # Order Service
   lsof -i :8081   # Inventory Service
+  lsof -i :8083   # Payment Service
   lsof -i :5672   # RabbitMQ AMQP
   lsof -i :15672  # RabbitMQ Management
   lsof -i :3306   # MySQL Order DB
   lsof -i :3307   # MySQL Inventory DB
+  lsof -i :3308   # MySQL Payment DB
   ```
 
 - [ ] **磁盘空间** ≥ 2GB (Docker镜像)
@@ -92,6 +94,23 @@
   - [ ] `application.yml` ✅
   - [ ] `schema.sql` ✅
 
+### Payment Service (`payment-service/`)
+
+- [ ] `pom.xml` ✅
+- [ ] `Dockerfile` ✅
+- [ ] `src/main/java/com/uwindsor/ecommerce/payment/`
+  - [ ] `PaymentServiceApplication.java` ✅
+  - [ ] `controller/PaymentController.java` ✅
+  - [ ] `service/PaymentService.java` ✅
+  - [ ] `entity/Payment.java` ✅
+  - [ ] `repository/PaymentRepository.java` ✅
+  - [ ] `event/PaymentReservedEvent.java` ✅
+  - [ ] `event/PaymentReservationFailedEvent.java` ✅
+  - [ ] `config/RabbitMQConfig.java` ✅
+- [ ] `src/main/resources/`
+  - [ ] `application.yml` ✅
+  - [ ] `schema.sql` ✅
+
 ---
 
 ## 代码质量检查
@@ -120,6 +139,19 @@
 - [ ] 事务管理正确
   ```bash
   grep -r "@Transactional" inventory-service/src/main/java/
+  ```
+
+### Payment Service
+
+- [ ] 所有类都有JavaDoc注释
+- [ ] 异常处理完整
+- [ ] 日志记录充分
+  ```bash
+  grep -r "@Slf4j" payment-service/src/main/java/
+  ```
+- [ ] 事务管理正确
+  ```bash
+  grep -r "@Transactional" payment-service/src/main/java/
   ```
 
 ---
@@ -161,6 +193,8 @@
   ✓ saga-inventory-db is running
   ✓ saga-order-service is running
   ✓ saga-inventory-service is running
+  ✓ saga-payment-db is running
+  ✓ saga-payment-service is running
   ```
 
 ---
@@ -190,6 +224,13 @@
   # 预期: 连接成功 (无特定响应)
   ```
 
+- [ ] Payment Service正常
+
+  ```bash
+  curl http://localhost:8083/api/payments/test-order?amount=10&status=SUCCESS -X POST
+  # 预期: 返回payment记录JSON
+  ```
+
 - [ ] Dashboard正常
   ```bash
   curl http://localhost:8080/dashboard
@@ -212,6 +253,13 @@
   # 预期: 1
   ```
 
+- [ ] Payment DB连接
+
+  ```bash
+  mysql -h localhost -P 3308 -u root -proot payment_db -e "SELECT 1"
+  # 预期: 1
+  ```
+
 - [ ] Order DB表检查
 
   ```bash
@@ -229,10 +277,18 @@
   ```
 
 - [ ] 初始库存数据
+
   ```bash
   mysql -h localhost -P 3307 -u root -proot inventory_db -e \
     "SELECT * FROM inventory;"
   # 预期: 4种产品 (iPhone 16, MacBook Pro, iPad Air, Apple Watch)
+  ```
+
+- [ ] Payment DB表检查
+
+  ```bash
+  mysql -h localhost -P 3308 -u root -proot payment_db -e "SHOW TABLES;"
+  # 预期: payment
   ```
 
 ---
@@ -258,11 +314,19 @@
   ```
 
 - [ ] 失败订单测试（库存不足）
+
   ```bash
   curl -X POST http://localhost:8080/api/orders \
     -H "Content-Type: application/json" \
     -d '{"userId": 1002, "items": [{"productId": 1, "quantity": 10000}]}'
   # 预期: 创建成功，但状态最终为 CANCELLED
+  ```
+
+- [ ] 支付失败补偿测试
+
+  ```bash
+  curl -X POST "http://localhost:8083/api/payments/ORD-XXXXXXXX?amount=1000&status=FAILED"
+  # 预期: order-service收到payment.failed并发布order.cancelled，inventory释放预留库存
   ```
 
 ### 仪表板验证
@@ -291,8 +355,11 @@
 
 - [ ] 检查队列
   - [ ] `order.created.queue`
+  - [ ] `order.cancelled.queue`
   - [ ] `inventory.reserved.queue`
   - [ ] `inventory.failed.queue`
+  - [ ] `payment.reserved.queue`
+  - [ ] `payment.failed.queue`
 
 - [ ] 检查Exchange
   - [ ] `saga.events` (Topic Exchange)
@@ -326,6 +393,16 @@ docker logs saga-inventory-service -f
 # - "Processing inventory reservation for order"
 # - "Inventory reserved for product"
 # - "InventoryReservedEvent published"
+```
+
+### Payment Service日志
+
+```bash
+docker logs saga-payment-service -f
+
+# 预期输出:
+# - "Processing payment result"
+# - "Payment success event published" 或 "Payment failure event published"
 ```
 
 ### RabbitMQ日志
@@ -416,7 +493,7 @@ docker compose down --rmi all
 
 ✅ **部署成功的标志**:
 
-1. ✓ 5个容器全部Running
+1. ✓ 7个容器全部Running
 2. ✓ 创建的订单状态自动变化
 3. ✓ 仪表板显示实时数据
 4. ✓ 没有错误日志

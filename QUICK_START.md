@@ -29,15 +29,17 @@ docker compose up --build
 # ✓ Inventory DB 启动完成
 # ✓ Order Service 启动完成 (http://localhost:8080)
 # ✓ Inventory Service 启动完成 (http://localhost:8081)
+# ✓ Payment Service 启动完成 (http://localhost:8083)
 ```
 
 ### 访问系统
 
-| 组件         | URL                             | 用途                        |
-| ------------ | ------------------------------- | --------------------------- |
-| 📊 Dashboard | http://localhost:8080/dashboard | 实时仪表板（2秒刷新）       |
-| 📮 RabbitMQ  | http://localhost:15672          | 消息队列管理（guest/guest） |
-| 📝 API 文档  | Postman_Collection.json         | 导入Postman测试             |
+| 组件           | URL                                | 用途                        |
+| -------------- | ---------------------------------- | --------------------------- |
+| 📊 Dashboard   | http://localhost:8080/dashboard    | 实时仪表板（2秒刷新）       |
+| 📮 RabbitMQ    | http://localhost:15672             | 消息队列管理（guest/guest） |
+| 💳 Payment API | http://localhost:8083/api/payments | 支付结果回传接口            |
+| 📝 API 文档    | Postman_Collection.json            | 导入Postman测试             |
 
 ---
 
@@ -128,6 +130,9 @@ docker logs saga-order-service -f
 # Inventory Service日志
 docker logs saga-inventory-service -f
 
+# Payment Service日志
+docker logs saga-payment-service -f
+
 # RabbitMQ日志
 docker logs saga-rabbitmq -f
 ```
@@ -140,6 +145,10 @@ docker logs saga-rabbitmq -f
    - ✓ `order.created.queue` - Order Service发布，Inventory Service消费
    - ✓ `inventory.reserved.queue` - Inventory Service发布，Order Service消费
    - ✓ `inventory.failed.queue` - 仅在失败时使用
+
+   - ✓ `payment.reserved.queue` - Payment Service发布，Order Service消费
+   - ✓ `payment.failed.queue` - Payment失败补偿路径
+   - ✓ `order.cancelled.queue` - Order Service发布，Inventory Service消费
 
 2. **Exchanges** 标签：
    - ✓ `saga.events` - Topic Exchange 用于所有事件
@@ -174,9 +183,11 @@ mysql -h localhost -P 3307 -u root -proot inventory_db -e \
 # A: 查找占用进程
 lsof -i :8080  # Order Service
 lsof -i :8081  # Inventory Service
+lsof -i :8083  # Payment Service
 lsof -i :5672  # RabbitMQ
 lsof -i :3306  # Order DB
 lsof -i :3307  # Inventory DB
+lsof -i :3308  # Payment DB
 
 # 杀死进程
 kill -9 <PID>
@@ -199,6 +210,7 @@ docker logs saga-inventory-db
 # 验证数据库连接
 mysql -h localhost -P 3306 -u root -proot -e "SELECT 1"
 mysql -h localhost -P 3307 -u root -proot -e "SELECT 1"
+mysql -h localhost -P 3308 -u root -proot -e "SELECT 1"
 ```
 
 ### Q: RabbitMQ消息堆积如何清理?
@@ -263,12 +275,22 @@ docker compose up --build
 300ms →  RabbitMQ消息返回
      └─ Message in queue: inventory.reserved.queue
 
-400ms →  Order Service完成处理
+400ms →  Order Service更新中间状态
      ├─ 接收 InventoryReservedEvent
-     ├─ 订单状态: CONFIRMED
-     └─ Saga状态: COMPLETED
+  ├─ 订单状态: CONFIRMED
+  └─ Saga状态: AWAITING_PAYMENT
 
-总耗时: 400ms (实际2-5秒含网络延迟)
+600ms →  Payment Service处理
+  ├─ 前端调用 /api/payments/{orderId}?status=SUCCESS
+  ├─ 保存支付记录
+  └─ 发布 PaymentReservedEvent
+
+800ms →  Order Service最终完成
+  ├─ 接收 PaymentReservedEvent
+  ├─ 订单状态: PAID
+  └─ Saga状态: COMPLETED
+
+总耗时: 800ms (实际2-5秒含网络延迟)
 ```
 
 ### 订单取消流程 (补偿)
@@ -287,9 +309,15 @@ docker compose up --build
      └─ 发布 InventoryReservationFailedEvent
 
 400ms →  Order Service触发补偿
-     ├─ 接收 InventoryReservationFailedEvent
-     ├─ 订单状态: CANCELLED (补偿)
-     └─ Saga状态: COMPENSATED
+  ├─ 接收 InventoryReservationFailedEvent
+  ├─ 订单状态: CANCELLED (补偿)
+  └─ Saga状态: COMPENSATED
+
+支付失败补偿（库存已预留场景）：
+600ms → Payment Service发布 PaymentReservationFailedEvent
+700ms → Order Service发布 OrderCancelledEvent
+800ms → Inventory Service释放 reserved 库存
+900ms → Order状态保持 CANCELLED
 
 总耗时: 400ms (实际2-5秒含网络延迟)
 注意: 无需额外补偿，因为库存从未预留过
@@ -313,8 +341,9 @@ docker compose up --build
 
 - [ ] 所有Docker容器成功启动
 - [ ] 仪表板能够访问 (http://localhost:8080/dashboard)
-- [ ] 成功订单流程正常 (PENDING → CONFIRMED)
+- [ ] 成功订单流程正常 (PENDING → CONFIRMED → PAID)
 - [ ] 失败订单流程正常 (PENDING → CANCELLED)
+- [ ] 支付失败后库存补偿正常 (OrderCancelledEvent)
 - [ ] RabbitMQ消息队列有消息流动
 - [ ] 数据库中有订单和Saga日志记录
 - [ ] 并发订单处理正常

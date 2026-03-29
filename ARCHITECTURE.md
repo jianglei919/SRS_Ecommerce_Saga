@@ -17,68 +17,41 @@
 ### 高级架构
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                    客户端应用层                                   │
-│          (Web UI Dashboard + REST API 客户端)                    │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-         ┌───────────────────┼───────────────────┐
-         │                   │                   │
-    ┌────▼─────────┐   ┌─────▼──────┐      ┌────▼──────────┐
-    │  Order       │   │ RabbitMQ   │      │  Dashboard    │
-    │  Service     │   │  Message   │      │  Service      │
-    │  (8080)      │   │  Broker    │      │  (8080)       │
-    │  ┌────────┐  │   │            │      │  ┌─────────┐  │
-    │  │Servlet│  │   │ ┌────────┐ │      │  │Thymeleaf│  │
-    │  │+ REST  │──────▶│ Queues │ │◀─────│  │ View    │  │
-    │  │API    │  │   │ │& Events│ │      │  │Resolver │  │
-    │  └────────┘  │   │ └────────┘ │      │  └─────────┘  │
-    │  ┌────────┐  │   │            │      │               │
-    │  │Service │  │   │ ┌────────┐ │      │  ┌─────────┐  │
-    │  │Layer   │  │   │ │Exchange│ │      │  │AJAX     │  │
-    │  │(Saga   │  │   │ │(Topic) │ │      │  │Refresh  │  │
-    │  │Orchest.)  │   │ └────────┘ │      │  │(2s)     │  │
-    │  └────────┘  │   │            │      │  └─────────┘  │
-    │  ┌────────┐  │   └─────┬──────┘      │               │
-    │  │Event   │  │         │              │               │
-    │  │Listener│  │         │              │               │
-    │  └────────┘  │         │              │               │
-    └──────┬───────┘         │              └───────────────┘
-           │                 │
-       ┌───▼──────────┐  ┌──▼──────┐   ┌──────────────────┐
-       │ Order DB     │  │ Inventory├──▶│ Inventory        │
-       │ (MySQL)      │  │ Service  │   │ Service          │
-       │ ┌────────┐   │  │ (8081)   │   │ (8081)           │
-       │ │Orders  │   │  └──┬───────┘   │ ┌──────────────┐ │
-       │ │Table   │   │     │           │ │Event Listener│ │
-       │ ├────────┤   │     │           │ │Handler       │ │
-       │ │Saga    │   │     │           │ │OrderCreated  │ │
-       │ │Log     │   │     │           │ │Compensation  │ │
-       │ │Table   │   │     │           │ └──────────────┘ │
-       │ └────────┘   │     │           │ ┌──────────────┐ │
-       └──────────────┘     │           │ │Service Layer │ │
-                            │           │ │- Reserve     │ │
-       ┌────────────────────┤           │ │- Release     │ │
-       │                    │           │ └──────────────┘ │
-       └────────────────────┼───────────┘ ┌──────────────┐ │
-                            │           │ │Inventory    │ │
-                        ┌───▼───────┐   │ │Log Table    │ │
-                        │ Inventory │   │ └──────────────┘ │
-                        │ DB        │   │                  │
-                        │ (MySQL)   │   │  ┌────────────┐  │
-                        │ ┌───────┐ │   │  │Inventory   │  │
-                        │ │Stock  │ │   │  │Table       │  │
-                        │ │Table  │ │   │  └────────────┘  │
-                        │ └───────┘ │   └──────────────────┘
-                        └───────────┘
+┌─────────────────────────────────────────────────────────────────────────┐
+│                          客户端应用层                                   │
+│                 (Web UI Dashboard + REST API Client)                    │
+└───────────────────────────────┬─────────────────────────────────────────┘
+                                │
+            ┌───────────────────┼───────────────────┐
+            │                   │                   │
+      ┌─────▼─────┐      ┌──────▼──────┐      ┌────▼───────┐
+      │  Order    │      │ Inventory   │      │  Payment   │
+      │ Service   │      │ Service     │      │  Service   │
+      │   8080    │      │   8081      │      │   8083     │
+      └─────┬─────┘      └──────┬──────┘      └────┬───────┘
+            │                   │                   │
+      ┌─────▼───────────────────▼───────────────────▼───────┐
+      │                    RabbitMQ (AMQP)                   │
+      │               Exchange: saga.events                  │
+      └─────┬───────────────────┬───────────────────┬───────┘
+            │                   │                   │
+  ┌─────────▼─────────┐ ┌───────▼─────────┐ ┌──────▼────────────┐
+  │ order.created.queue│ │inventory.*.queue│ │payment.*.queue    │
+  │ order.cancelled.q  │ │                 │ │                    │
+  └────────────────────┘ └─────────────────┘ └───────────────────┘
+
+      ┌──────────────┐      ┌───────────────┐      ┌──────────────┐
+      │  order_db    │      │ inventory_db  │      │ payment_db   │
+      │  MySQL 3306  │      │  MySQL 3307   │      │ MySQL 3308   │
+      └──────────────┘      └───────────────┘      └──────────────┘
 ```
 
 ### 核心思想
 
-1. **微服务隔离**: 每个服务有独立的数据库，通过事件通信
-2. **Saga编排**: Order Service作为中央编排器管理分布式事务
-3. **事件驱动**: RabbitMQ处理异步通信和解耦
-4. **最终一致性**: 系统最终达到一致状态，中间可能有短暂不一致
+1. 微服务隔离: 每个服务有独立数据库，通过事件通信。
+2. Saga编排: Order Service 作为中央编排器管理分布式事务。
+3. 事件驱动: RabbitMQ 负责异步通信与服务解耦。
+4. 最终一致性: 系统允许短暂不一致，最终自动收敛。
 
 ---
 
@@ -91,31 +64,21 @@
 │  Order Service Module               │
 ├─────────────────────────────────────┤
 │  REST Controller                    │
-│  ├─ POST /api/orders                │ ← 创建订单
-│  ├─ GET /api/orders/{id}            │ ← 查询状态
-│  └─ GET /dashboard                  │ ← 仪表板
+│  ├─ POST /api/orders                │
+│  ├─ GET /api/orders/{id}            │
+│  └─ GET /dashboard                  │
 ├─────────────────────────────────────┤
-│  Service Layer (业务逻辑)            │
-│  ├─ OrderService                    │
-│  │  ├─ createOrder()    [Happy Path]│
-│  │  ├─ handleInventory  [Success]   │
-│  │  └─ handleInventoryF [Failure]   │
-│  └─ OrderEventListener              │
-│     ├─ handleInventoryReserved()    │
-│     └─ handleInventoryFailed()      │
+│  Service Layer                      │
+│  ├─ createOrder()                   │
+│  ├─ handleInventoryReserved()       │
+│  ├─ handlePaymentSuccess()          │
+│  └─ handlePaymentFailed()           │
 ├─────────────────────────────────────┤
-│  Entity Layer (数据模型)             │
-│  ├─ Order (PENDING/CONFIRMED/...)  │
-│  └─ SagaLog (tracking)              │
-├─────────────────────────────────────┤
-│  Repository Layer (数据访问)         │
-│  ├─ OrderRepository                 │
-│  └─ SagaLogRepository               │
-├─────────────────────────────────────┤
-│  RabbitMQ Configuration             │
-│  ├─ OrderCreatedEvent [Publish]     │
-│  ├─ InventoryReservedEvent [Listen] │
-│  └─ InventoryFailedEvent [Listen]   │
+│  Event Listener                     │
+│  ├─ inventory.reserved              │
+│  ├─ inventory.failed                │
+│  ├─ payment.reserved                │
+│  └─ payment.failed                  │
 └─────────────────────────────────────┘
 ```
 
@@ -126,28 +89,35 @@
 │  Inventory Service Module           │
 ├─────────────────────────────────────┤
 │  Event Listener                     │
-│  └─ InventoryEventListener          │
-│     └─ handleOrderCreated()  ← RabbitMQ
+│  ├─ order.created                   │
+│  └─ order.cancelled                 │
 ├─────────────────────────────────────┤
-│  Service Layer (业务逻辑)            │
-│  └─ InventoryService                │
-│     ├─ reserveInventory()           │
-│     ├─ releaseInventory() [Comp]    │
-│     ├─ publishSuccess()             │
-│     └─ publishFailure()             │
+│  Service Layer                      │
+│  ├─ reserveInventory()              │
+│  └─ releaseInventory()              │
 ├─────────────────────────────────────┤
-│  Entity Layer (数据模型)             │
-│  ├─ Inventory (stock/reserved)      │
-│  └─ InventoryLog (audit trail)      │
+│  Data Model                         │
+│  ├─ inventory                       │
+│  └─ inventory_log                   │
+└─────────────────────────────────────┘
+```
+
+### Payment Service 架构
+
+```
+┌─────────────────────────────────────┐
+│  Payment Service Module             │
 ├─────────────────────────────────────┤
-│  Repository Layer (数据访问)         │
-│  ├─ InventoryRepository             │
-│  └─ InventoryLogRepository          │
+│  REST Controller                    │
+│  └─ POST /api/payments/{orderId}    │
 ├─────────────────────────────────────┤
-│  RabbitMQ Configuration             │
-│  ├─ OrderCreatedEvent [Listen]      │
-│  ├─ InventoryReservedEvent [Publish]│
-│  └─ InventoryFailedEvent [Publish]  │
+│  Service Layer                      │
+│  ├─ processPaymentResult()          │
+│  ├─ publish payment.reserved        │
+│  └─ publish payment.failed          │
+├─────────────────────────────────────┤
+│  Data Model                         │
+│  └─ payment                         │
 └─────────────────────────────────────┘
 ```
 
@@ -155,96 +125,59 @@
 
 ## Saga模式实现
 
-### 编排型Saga (Orchestration-based)
-
-**选择原因**:
-
-- ✅ 中心化控制，易于理解和维护
-- ✅ 事务顺序一目了然
-- ✅ 易于添加新的补偿逻辑
-- ⚠️ Order Service 成为中心，可能成为瓶颈
-
 ### Saga状态机
 
 ```
-                    ┌──────────────┐
-                    │   STARTED    │
-                    └──────┬───────┘
-                           │
-                   创建订单 + 发布事件
-                           │
-                  ┌────────▼────────┐
-                  │ 等待库存响应    │
-                  └────────┬────────┘
-                           │
-                ┌──────────┴─────────┐
-                │                   │
-        ┌───────▼────────┐   ┌──────▼──────┐
-        │ 保留成功       │   │ 保留失败     │
-        │ [Happy Path]   │   │ [Comp Path]  │
-        └───────┬────────┘   └──────┬──────┘
-                │                   │
-        ┌───────▼────────┐   ┌──────▼──────┐
-        │   COMPLETED    │   │ COMPENSATED │
-        │ (CONFIRMED)    │   │  (CANCELLED)│
-        └────────────────┘   └─────────────┘
+STARTED
+  │
+  ├─(order.created)───────────────────────────────┐
+  │                                                │
+  ▼                                                ▼
+WAIT_INVENTORY                               INVENTORY_FAILED
+  │                                                │
+  ├─ inventory.reserved                            │
+  ▼                                                │
+AWAITING_PAYMENT                                  │
+  │                                                │
+  ├─ payment.reserved ─────────────► COMPLETED (PAID)
+  │
+  └─ payment.failed ─► COMPENSATING_INVENTORY ─► COMPENSATED (CANCELLED)
 ```
-
-### 关键特性
-
-1. **原子性**: 每个服务的本地事务是ACID的
-2. **一致性**: 最终一致，通过补偿保证
-3. **隔离性**: 服务间通过事件隔离
-4. **持久性**: 所有状态变更持久化到数据库
 
 ---
 
 ## 事件流
 
-### Happy Path (成功路径)
+### Happy Path (库存成功 + 支付成功)
 
 ```
-时间 → 事件  → 方向  → 接收方  → 操作      → 结果
-────────────────────────────────────────────────────
-0ms   创建    User   Order    创建订单    Order: PENDING
-      请求           Service  发布事件
-
-100ms Order   OS→RS  RabbitMQ 入队        消息在队列
-      Created
-      Event
-
-200ms 接收    RS→IS  Inventory 预留库存   stock decreased
-      消息           Service   发布成功    reserved ↑
-
-300ms Invent  IS→RS  RabbitMQ  入队       消息在队列
-      Reserved
-      Event
-
-400ms 接收    RS→OS  Order    更新订单    Order: CONFIRMED
-      消息           Service  更新日志    SagaLog: COMPLETED
+0ms   User -> Order Service: POST /api/orders
+50ms  Order Service: create PENDING + publish order.created
+150ms Inventory Service: reserve stock + publish inventory.reserved
+250ms Order Service: set CONFIRMED + step AWAITING_PAYMENT
+400ms User -> Payment Service: POST /api/payments/{orderId}?status=SUCCESS
+500ms Payment Service: persist payment + publish payment.reserved
+650ms Order Service: set PAID + saga COMPLETED
 ```
 
-### Compensation Path (补偿路径)
+### Compensation Path A (库存失败)
 
 ```
-时间 → 事件    → 方向  → 接收方  → 操作       → 结果
-─────────────────────────────────────────────────────
-0ms   创建请   User   Order    创建订单     Order: PENDING
-      求             Service  发布事件
+0ms   User -> Order Service: POST /api/orders
+100ms Inventory Service: detect insufficient stock
+150ms Inventory Service: publish inventory.failed
+250ms Order Service: set CANCELLED + saga COMPENSATED
+```
 
-100ms Order    OS→RS  RabbitMQ 入队         消息在队列
-      Created
-      Event
+### Compensation Path B (支付失败，库存已预留)
 
-200ms 接收      RS→IS  Invent   检查库存  ✗ 库存不足
-      消息             Service  发布失败
-
-300ms Invent    IS→RS  RabbitMQ 入队       消息在队列
-      Failed
-      Event
-
-400ms 接收      RS→OS  Order    触发补偿  Order: CANCELLED
-      消息             Service  更新日志  SagaLog: COMPENSATED
+```
+0ms   Inventory already reserved, order CONFIRMED
+100ms User -> Payment Service: status=FAILED
+150ms Payment Service: publish payment.failed
+250ms Order Service: publish order.cancelled
+350ms Inventory Service: release reserved stock
+450ms Order Service: keep status CANCELLED, saga COMPENSATED
 ```
 
 ---
@@ -254,181 +187,88 @@
 ### Order Database Schema
 
 ```sql
--- 订单主表
 CREATE TABLE orders (
-    id BIGINT PK AUTO_INCREMENT,
-    order_id VARCHAR(36) UQ,      -- 业务主键
-    user_id BIGINT,               -- 用户ID
-    total_amount DECIMAL(10,2),   -- 订单金额
-    status ENUM(...),             -- PENDING/CONFIRMED/CANCELLED/FAILED
-    saga_id VARCHAR(36),          -- 关联的Saga
-    created_at TIMESTAMP          -- 创建时间
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    order_id VARCHAR(36) UNIQUE NOT NULL,
+    user_id BIGINT NOT NULL,
+    total_amount DECIMAL(10,2) NOT NULL,
+    status ENUM('PENDING','CONFIRMED','PAID','CANCELLED','FAILED'),
+    saga_id VARCHAR(36),
+    created_at TIMESTAMP
 );
 
--- Saga日志表 (跟踪进度)
 CREATE TABLE saga_log (
-    saga_id VARCHAR(36) PK,       -- Saga标识
-    current_step VARCHAR(50),     -- 当前步骤
-    status ENUM(...),             -- STARTED/COMPLETED/COMPENSATED/FAILED
-    last_updated TIMESTAMP        -- 最后更新时间
+    saga_id VARCHAR(36) PRIMARY KEY,
+    current_step VARCHAR(50),
+    status ENUM('STARTED','COMPLETED','COMPENSATED','FAILED'),
+    last_updated TIMESTAMP
 );
 ```
 
 ### Inventory Database Schema
 
 ```sql
--- 库存表
 CREATE TABLE inventory (
-    product_id BIGINT PK,         -- 产品ID
-    product_name VARCHAR(100),    -- 产品名称
-    stock INT,                    -- 总库存
-    reserved INT                  -- 已预留
+    product_id BIGINT PRIMARY KEY,
+    product_name VARCHAR(100),
+    stock INT,
+    reserved INT
 );
 
--- 库存操作日志 (审计日志)
 CREATE TABLE inventory_log (
-    id BIGINT PK AUTO_INCREMENT,
-    order_id VARCHAR(36),         -- 订单ID
-    product_id BIGINT FK,         -- 产品ID
-    quantity INT,                 -- 数量
-    action ENUM(RESERVE/RELEASE), -- 操作类型
-    timestamp TIMESTAMP           -- 操作时间
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    order_id VARCHAR(36),
+    product_id BIGINT,
+    quantity INT,
+    action ENUM('RESERVE','RELEASE'),
+    timestamp TIMESTAMP
 );
 ```
 
-### 数据一致性规律
+### Payment Database Schema
 
-```
-成功路径:
-  Order.status:      PENDING → CONFIRMED
-  Inventory.reserved: old → old + qty
-  SagaLog.status:    STARTED → COMPLETED
-
-补偿路径:
-  Order.status:      PENDING → CANCELLED
-  Inventory.reserved: unchanged (未曾预留)
-  SagaLog.status:    STARTED → COMPENSATED
+```sql
+CREATE TABLE payment (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    order_id VARCHAR(36) NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    status ENUM('SUCCESS','FAILED') NOT NULL,
+    payment_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
 ```
 
 ---
 
 ## 设计决策
 
-### 1. 为什么选择Saga模式?
-
-| 比较   | 2PC  | Saga       |
-| ------ | ---- | ---------- |
-| 实时性 | 优秀 | 较好 (5秒) |
-| 可用性 | 中等 | 高 (无锁)  |
-| 复杂度 | 低   | 中等       |
-| 可扩展 | 差   | 优秀       |
-| 补偿   | 自动 | 手动       |
-
-**结论**: Saga适合电商中库存相对充足、完全失败罕见的场景
-
-### 2. 编排型 vs 编程型
-
-**编排型** (选择该项):
-
-```
-Order Service (Orchestrator)
-    ├─ 1. 创建订单
-    ├─ 2. 调用Inventory Service
-    ├─ 3. 等待响应
-    └─ 4. 更新或补偿
-优点: 清晰易懂，集中控制
-缺点: OS成为单点
-```
-
-**编程型** (未选择):
-
-```
-Inventory Service自主监听OrderCreatedEvent
-Order Service自主监听InventoryReservedEvent
-优点: 低耦合
-缺点: 流程分散，难以追踪
-```
-
-### 3. RabbitMQ选择
-
-| 选择           | 理由                 |
-| -------------- | -------------------- |
-| 异步消息队列   | 解耦服务，支持高吞吐 |
-| Topic Exchange | 灵活的消息路由       |
-| 持久队列       | 消息不丢失           |
-| 管理界面       | 便于监控和调试       |
-
-### 4. 数据库隔离策略
-
-每个微服务有**独立的MySQL实例**:
-
-- ✅ 高度解耦，互不影响
-- ✅ 可独立扩展
-- ✅ 符合微服务原则
-- ⚠️ 不能跨库事务
+1. 使用 Saga 而非 2PC，降低阻塞风险并提升可用性。
+2. 引入 Payment Service，将库存确认与支付确认解耦。
+3. 通过 `order.cancelled` 事件驱动库存补偿，保持服务边界清晰。
 
 ---
 
 ## 扩展性
 
-### 水平扩展 (添加更多服务)
+### 当前架构
 
 ```
-当前架构:
-Order Service -[Events]-> Inventory Service
-
-未来可扩展为:
-Order Service -[Events]-> Inventory Service
-            \            /
-             \          /
-              Payment Service
-               |
-              Shipping Service
-                |
-              Notification Service
-
-每个服务:
-- 独立的MySQL数据库
-- 独立的Event Listeners
-- RabbitMQ中增加新的Queue和Exchange
+Order Service --(order.created)--> Inventory Service
+Payment Service --(payment.*)-----> Order Service
+Order Service --(order.cancelled)-> Inventory Service
 ```
 
-### 性能优化建议
+### 后续可扩展
 
-1. **缓存层** (Redis)
-   - 缓存产品信息和库存
-   - 减少数据库查询
-
-2. **异步处理**
-   - 异步发送通知
-   - 异步更新报表
-
-3. **消息优化**
-   - Dead Letter Queue处理失败消息
-   - 批量处理提高吞吐
-
-4. **数据库优化**
-   - 添加适当索引
-   - 分区表处理大量数据
-   - 读写分离
-
-### 可靠性增强
-
-1. **幂等性** - 相同消息多次处理返回相同结果
-2. **重试机制** - 指数退避重试
-3. **断路器** - Resilience4j防止级联故障
-4. **监控告警** - Prometheus + Grafana
+1. Shipping Service: 仅消费 PAID 订单。
+2. Notification Service: 统一发送通知。
+3. Fraud Service: 风控拒付触发补偿。
 
 ---
 
 ## 总结
 
-本项目通过**编排型Saga模式**实现了分布式事务管理，展示了:
+系统已升级为“订单 + 库存 + 支付”的三阶段 Saga：
 
-✅ 微服务架构最佳实践
-✅ 事件驱动设计
-✅ 异步通信与解耦
-✅ 最终一致性保证
-✅ 故障补偿机制
-
-这为高可用、高性能的电商系统提供了坚实基础！
+- 支持支付成功后订单状态收敛到 `PAID`。
+- 支持支付失败后触发库存补偿。
+- 保持服务解耦与数据库隔离。
