@@ -396,7 +396,7 @@
                     itemsHtml = `<div class="text-secondary small mt-1"><i class="fas fa-box me-1"></i> ${order.productNames}</div>`;
                 }
 
-                let timeStr = order.createdAt ? new Date(new Date(order.createdAt).getTime() - 8 * 60 * 60 * 1000).toLocaleString() : '';
+                let timeStr = order.createdAt ? new Date(new Date(order.createdAt).getTime() - 4 * 60 * 60 * 1000).toLocaleString() : '';
 
                 tbody.append(`
                     <tr>
@@ -430,8 +430,6 @@
 
         function createOrder() {
             let userId = $('#userIdInput').val() || '1001';
-            let btn = $('.btn-primary');
-            btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Processing...');
 
             let items = [];
             $('.product-check:checked').each(function() {
@@ -439,8 +437,12 @@
             });
 
             if (items.length === 0) {
-                items.push({ productId: 1, quantity: 1 }); // fallback
+                alert("Please select at least one product");
+                return;
             }
+
+            let btn = $('.btn-primary');
+            btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Processing...');
 
             $.ajax({
                 url: '/api/orders',
@@ -464,8 +466,6 @@
 
         function simulateInventoryFailure() {
             let userId = $('#userIdInput').val() || '1001';
-            let btn = $('.btn-simulate');
-            btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Triggering...');
 
             let items = [];
             $('.product-check:checked').each(function() {
@@ -473,8 +473,12 @@
             });
 
             if (items.length === 0) {
-                items.push({ productId: 1, quantity: 999999 }); // fallback
+                alert("Please select at least one product");
+                return;
             }
+
+            let btn = $('.btn-simulate');
+            btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Triggering...');
 
             $.ajax({
                 url: '/api/orders',
