@@ -257,7 +257,7 @@ CREATE TABLE inventory_log (
 );
 ```
 
-**Initial Data** (AI must insert):
+**Initial Data**:
 
 - product_id=1, name='iPhone 16', stock=1000
 - product_id=2, name='MacBook Pro', stock=500

@@ -290,31 +290,63 @@
         </div>
 
         <!-- Unified Order & Saga View -->
-        <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-project-diagram me-2 text-primary"></i> Ongoing Transactions (Orders ↔ Sagas)</h5>
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-project-diagram me-2 text-primary"></i> Ongoing Transactions (Orders ↔ Sagas)</h5>
+                    </div>
+                    <div class="card-body table-container">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Order Info</th>
+                                        <th>Order Status</th>
+                                        <th class="text-center text-muted"><i class="fas fa-link"></i> Linked Saga</th>
+                                        <th>Saga Step</th>
+                                        <th>Saga Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="unifiedTableBody">
+                                    <tr th:if="${orders.empty}">
+                                        <td colspan="5" class="text-center py-4 text-muted">
+                                            <i class="fas fa-inbox fa-3x mb-3 opacity-25"></i>
+                                            <p>No orders processed yet.</p>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="card-body table-container">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Order Info</th>
-                                <th>Order Status</th>
-                                <th class="text-center text-muted"><i class="fas fa-link"></i> Linked Saga</th>
-                                <th>Saga Step</th>
-                                <th>Saga Status</th>
-                            </tr>
-                        </thead>
-                        <tbody id="unifiedTableBody">
-                            <tr th:if="${orders.empty}">
-                                <td colspan="5" class="text-center py-4 text-muted">
-                                    <i class="fas fa-inbox fa-3x mb-3 opacity-25"></i>
-                                    <p>No orders processed yet.</p>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0"><i class="fas fa-box-open me-2 text-primary"></i> Current Inventory</h5>
+                        <button class="btn btn-sm btn-outline-primary" onclick="refreshInventory()"><i class="fas fa-sync-alt"></i></button>
+                    </div>
+                    <div class="card-body table-container">
+                        <div class="table-responsive">
+                            <table class="table table-sm table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Available</th>
+                                        <th>Stock</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="inventoryTableBody">
+                                    <tr>
+                                        <td colspan="4" class="text-center p-3 text-muted">Loading inventory...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -500,13 +532,68 @@
             });
         }
 
+        function refreshInventory() {
+            $.ajax({
+                url: 'http://localhost:8081/api/inventory',
+                type: 'GET',
+                success: function (data) {
+                    let tbody = $('#inventoryTableBody');
+                    tbody.empty();
+                    if (!data || data.length === 0) {
+                        tbody.html('<tr><td colspan="4" class="text-center text-muted">No inventory data</td></tr>');
+                        return;
+                    }
+                    data.forEach(item => {
+                        let available = item.stock - item.reserved;
+                        tbody.append(`
+                            <tr>
+                                <td><span class="fw-bold">${item.productName || 'Prod '+item.productId}</span></td>
+                                <td><span class="badge bg-success">${available}</span></td>
+                                <td>${item.stock} (R:${item.reserved})</td>
+                                <td>
+                                    <div class="input-group input-group-sm" style="width: 130px;">
+                                        <input type="number" id="stockDelta_${item.productId}" class="form-control text-center" value="">
+                                        <button class="btn btn-primary" onclick="applyCustomInventory(${item.productId})">Update</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `);
+                    });
+                },
+                error: function() {
+                    $('#inventoryTableBody').html('<tr><td colspan="4" class="text-center text-danger">Failed to load from localhost:8081</td></tr>');
+                }
+            });
+        }
+
+
+        function applyCustomInventory(productId) {
+            let amount = parseInt($(`#stockDelta_${productId}`).val());
+            if (isNaN(amount) || amount === 0) return;
+
+            $.ajax({
+                url: 'http://localhost:8081/api/inventory/' + productId + '/add?amount=' + amount,
+                type: 'POST',
+                success: function() {
+                    refreshInventory();
+                },
+                error: function() {
+                    alert('Failed to update inventory');
+                }
+            });
+        }
+
         $(document).ready(function () {
             // Initial render
             refreshDashboard();
+            refreshInventory();
             // Polling for real-time updates
             setInterval(refreshDashboard, 2000);
+            setInterval(refreshInventory, 5000);
         });
     </script>
 </body>
 
 </html>
+
+
