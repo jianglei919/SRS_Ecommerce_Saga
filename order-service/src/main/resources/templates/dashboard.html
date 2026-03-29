@@ -214,13 +214,13 @@
                 </div>
             </div>
             <div class="col-md-3">
-                <div class="stat-card bg-warning text-dark">
+                <div class="stat-card" style="background-color: #20c997; color: white;">
                     <div class="stat-card-body">
                         <div>
-                            <h6 class="text-dark-50 text-uppercase mb-1">Pending</h6>
-                            <h2 class="mb-0 font-weight-bold" id="pendingOrders">0</h2>
+                            <h6 class="text-white-50 text-uppercase mb-1">Paid</h6>
+                            <h2 class="mb-0 font-weight-bold" id="paidOrders">0</h2>
                         </div>
-                        <div class="stat-icon"><i class="fas fa-hourglass-half"></i></div>
+                        <div class="stat-icon"><i class="fas fa-dollar-sign"></i></div>
                     </div>
                 </div>
             </div>
@@ -493,9 +493,10 @@
 
             // Animate counters if they changed (simple text update for now)
             $('#totalOrders').text(total);
-            $('#confirmedOrders').text(confirmed + paid); // Include paid orders in confirmed stats or display separately (I'll group it here)
+            $('#confirmedOrders').text(confirmed);
             $('#pendingOrders').text(pending);
             $('#cancelledOrders').text(cancelled);
+            $('#paidOrders').text(paid);
         }
 
         function createOrder() {
