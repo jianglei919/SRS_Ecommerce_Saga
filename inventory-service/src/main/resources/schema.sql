@@ -27,7 +27,7 @@ CREATE TABLE
         order_id VARCHAR(36) NOT NULL COMMENT 'Associated order ID',
         product_id BIGINT NOT NULL COMMENT 'Product being reserved/released',
         quantity INT NOT NULL COMMENT 'Quantity of product',
-        action ENUM ('RESERVE', 'RELEASE') NOT NULL COMMENT 'Type of action (reserve or release)',
+        action ENUM ('RESERVE', 'RELEASE', 'MANUAL_SET') NOT NULL COMMENT 'Type of action (reserve, release, or manual set)',
         timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT 'Action timestamp',
         FOREIGN KEY (product_id) REFERENCES inventory (product_id),
         INDEX idx_order_id (order_id),

@@ -23,8 +23,16 @@ public class Payment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @jakarta.persistence.Column(nullable = false, unique = true)
     private String orderId;
+
+    @jakarta.persistence.Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal amount;
+
+    @jakarta.persistence.Column(nullable = false)
     private String status;
+
+    @jakarta.persistence.Column(nullable = false)
     private LocalDateTime paymentTime;
 }

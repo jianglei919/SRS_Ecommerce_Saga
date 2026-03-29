@@ -19,7 +19,7 @@
             color: white;
             padding: 30px 0;
             margin-bottom: 30px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             border-bottom-left-radius: 12px;
             border-bottom-right-radius: 12px;
         }
@@ -33,7 +33,7 @@
         .stat-card {
             border-radius: 12px;
             border: none;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
             transition: transform 0.2s;
             margin-bottom: 20px;
             overflow: hidden;
@@ -41,7 +41,7 @@
 
         .stat-card:hover {
             transform: translateY(-5px);
-            box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
         }
 
         .stat-card-body {
@@ -102,16 +102,50 @@
             display: inline-block;
         }
 
-        .status-pending { background-color: #fff3cd; color: #856404; }
-        .status-confirmed { background-color: #d4edda; color: #155724; }
-        .status-cancelled { background-color: #f8d7da; color: #721c24; }
-        .status-failed { background-color: #f5c6cb; color: #721c24; }
-        .status-paid { background-color: #d1e7dd; color: #0f5132; }
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
 
-        .saga-status-started { background-color: #cfe2ff; color: #084298; }
-        .saga-status-completed { background-color: #d1e7dd; color: #0f5132; }
-        .saga-status-compensated { background-color: #ffe5d0; color: #8a4b10; }
-        .saga-status-failed { background-color: #f8d7da; color: #842029; }
+        .status-confirmed {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-cancelled {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-failed {
+            background-color: #f5c6cb;
+            color: #721c24;
+        }
+
+        .status-paid {
+            background-color: #d1e7dd;
+            color: #0f5132;
+        }
+
+        .saga-status-started {
+            background-color: #cfe2ff;
+            color: #084298;
+        }
+
+        .saga-status-completed {
+            background-color: #d1e7dd;
+            color: #0f5132;
+        }
+
+        .saga-status-compensated {
+            background-color: #ffe5d0;
+            color: #8a4b10;
+        }
+
+        .saga-status-failed {
+            background-color: #f8d7da;
+            color: #842029;
+        }
 
         .saga-step {
             font-family: monospace;
@@ -139,7 +173,11 @@
             color: white;
             border: none;
         }
-        .btn-simulate:hover { background-color: #fa5252; color: white; }
+
+        .btn-simulate:hover {
+            background-color: #fa5252;
+            color: white;
+        }
 
         .saga-link {
             display: flex;
@@ -152,7 +190,8 @@
             font-size: 1.2rem;
         }
 
-        .order-id, .saga-id {
+        .order-id,
+        .saga-id {
             font-family: monospace;
             color: #495057;
         }
@@ -162,6 +201,7 @@
             position: relative;
             text-align: center;
         }
+
         .relation-line {
             height: 2px;
             width: 30px;
@@ -170,6 +210,7 @@
             vertical-align: middle;
             position: relative;
         }
+
         .relation-line::after {
             content: '';
             position: absolute;
@@ -178,6 +219,157 @@
             border-top: 5px solid transparent;
             border-bottom: 5px solid transparent;
             border-left: 5px solid #dee2e6;
+        }
+
+        .result-box {
+            background: #f8fbff;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 12px;
+        }
+
+        .result-label {
+            font-size: 0.8rem;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .result-value {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #212529;
+        }
+
+        .log-panel {
+            max-height: 180px;
+            overflow-y: auto;
+            font-size: 0.88rem;
+        }
+
+        .refresh-paused {
+            color: #dc3545;
+            font-weight: 600;
+        }
+
+        .timeline {
+            position: relative;
+            margin-left: 8px;
+            padding-left: 24px;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 7px;
+            top: 2px;
+            bottom: 2px;
+            width: 2px;
+            background: #dbe4f0;
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 14px;
+            background: #f8fbff;
+            border: 1px solid #e9ecef;
+            border-radius: 10px;
+            padding: 10px 12px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -21px;
+            top: 14px;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #6c757d;
+            border: 2px solid #fff;
+            box-shadow: 0 0 0 2px #dbe4f0;
+        }
+
+        .timeline-item.latest {
+            border-color: #7fb2ff;
+            background: #edf5ff;
+            box-shadow: 0 6px 14px rgba(30, 60, 114, 0.12);
+        }
+
+        .timeline-item.latest::before {
+            background: #0d6efd;
+        }
+
+        .timeline-time {
+            font-size: 0.78rem;
+            color: #6c757d;
+        }
+
+        .timeline-empty {
+            color: #6c757d;
+            padding: 10px 0;
+        }
+
+        .status-note {
+            font-size: 0.75rem;
+            color: #6c757d;
+            margin-top: 4px;
+        }
+
+        .stock-chip,
+        .reserved-chip {
+            display: inline-block;
+            border-radius: 999px;
+            padding: 2px 8px;
+            font-size: 0.78rem;
+            font-weight: 700;
+        }
+
+        .stock-chip {
+            background: #e8f4ff;
+            color: #0b5ed7;
+            margin-right: 6px;
+        }
+
+        .reserved-none {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .reserved-active {
+            background: #f8d7da;
+            color: #842029;
+        }
+
+        .wallet-box-low {
+            border-color: #f1aeb5;
+            background: #f8d7da;
+        }
+
+        .wallet-box-medium {
+            border-color: #ffda6a;
+            background: #fff3cd;
+        }
+
+        .wallet-box-high {
+            border-color: #75b798;
+            background: #d1e7dd;
+        }
+
+        .wallet-input-low {
+            border-color: #dc3545 !important;
+            box-shadow: 0 0 0 0.1rem rgba(220, 53, 69, 0.15);
+        }
+
+        .wallet-input-medium {
+            border-color: #ffc107 !important;
+            box-shadow: 0 0 0 0.1rem rgba(255, 193, 7, 0.15);
+        }
+
+        .wallet-input-high {
+            border-color: #198754 !important;
+            box-shadow: 0 0 0 0.1rem rgba(25, 135, 84, 0.15);
         }
     </style>
 </head>
@@ -191,7 +383,7 @@
 
         <!-- Status Summary -->
         <div class="row mb-2">
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <div class="stat-card bg-primary text-white">
                     <div class="stat-card-body">
                         <div>
@@ -202,7 +394,18 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
+                <div class="stat-card" style="background-color: #ffc107; color: #212529;">
+                    <div class="stat-card-body">
+                        <div>
+                            <h6 class="text-dark text-uppercase mb-1">Pending</h6>
+                            <h2 class="mb-0 font-weight-bold" id="pendingOrders">0</h2>
+                        </div>
+                        <div class="stat-icon"><i class="fas fa-hourglass-half"></i></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-2">
                 <div class="stat-card bg-success text-white">
                     <div class="stat-card-body">
                         <div>
@@ -213,7 +416,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <div class="stat-card" style="background-color: #20c997; color: white;">
                     <div class="stat-card-body">
                         <div>
@@ -224,7 +427,7 @@
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
+            <div class="col-md-2">
                 <div class="stat-card bg-danger text-white">
                     <div class="stat-card-body">
                         <div>
@@ -235,6 +438,17 @@
                     </div>
                 </div>
             </div>
+            <div class="col-md-2">
+                <div class="stat-card" style="background-color: #6c757d; color: white;">
+                    <div class="stat-card-body">
+                        <div>
+                            <h6 class="text-white-50 text-uppercase mb-1">Failed</h6>
+                            <h2 class="mb-0 font-weight-bold" id="failedOrders">0</h2>
+                        </div>
+                        <div class="stat-icon"><i class="fas fa-bug"></i></div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <!-- Control Panel -->
@@ -242,7 +456,8 @@
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0"><i class="fas fa-sliders-h me-2 text-primary"></i> Simulation Controls</h5>
                 <div class="refresh-info">
-                    <i class="fas fa-sync-alt fa-spin me-1"></i> Auto-refreshing • Last: <span id="lastRefresh">Just now</span>
+                    <i class="fas fa-sync-alt fa-spin me-1"></i> Auto-refreshing • Last: <span id="lastRefresh">Just
+                        now</span>
                 </div>
             </div>
             <div class="card-body">
@@ -252,61 +467,163 @@
                         <div class="mb-2 d-flex flex-wrap gap-3">
                             <div class="d-flex align-items-center">
                                 <div class="form-check me-2 mb-0">
-                                    <input class="form-check-input product-check" type="checkbox" value="1" id="prod1" checked>
+                                    <input class="form-check-input product-check" type="checkbox" value="1" id="prod1"
+                                        checked>
                                     <label class="form-check-label" for="prod1">iPhone 16</label>
                                 </div>
-                                <input type="number" id="qty1" class="form-control form-control-sm" style="width: 60px;" value="1" min="1">
+                                <input type="number" id="qty1" class="form-control form-control-sm" style="width: 60px;"
+                                    value="1" min="1">
                             </div>
                             <div class="d-flex align-items-center">
                                 <div class="form-check me-2 mb-0">
                                     <input class="form-check-input product-check" type="checkbox" value="2" id="prod2">
                                     <label class="form-check-label" for="prod2">MacBook Pro</label>
                                 </div>
-                                <input type="number" id="qty2" class="form-control form-control-sm" style="width: 60px;" value="1" min="1">
+                                <input type="number" id="qty2" class="form-control form-control-sm" style="width: 60px;"
+                                    value="1" min="1">
                             </div>
                             <div class="d-flex align-items-center">
                                 <div class="form-check me-2 mb-0">
                                     <input class="form-check-input product-check" type="checkbox" value="3" id="prod3">
                                     <label class="form-check-label" for="prod3">iPad Air</label>
                                 </div>
-                                <input type="number" id="qty3" class="form-control form-control-sm" style="width: 60px;" value="1" min="1">
+                                <input type="number" id="qty3" class="form-control form-control-sm" style="width: 60px;"
+                                    value="1" min="1">
                             </div>
                             <div class="d-flex align-items-center">
                                 <div class="form-check me-2 mb-0">
                                     <input class="form-check-input product-check" type="checkbox" value="4" id="prod4">
                                     <label class="form-check-label" for="prod4">Apple Watch</label>
                                 </div>
-                                <input type="number" id="qty4" class="form-control form-control-sm" style="width: 60px;" value="1" min="1">
+                                <input type="number" id="qty4" class="form-control form-control-sm" style="width: 60px;"
+                                    value="1" min="1">
                             </div>
                         </div>
                         <div class="input-group">
-                            <span class="input-group-text bg-light border-end-0"><i class="fas fa-user text-muted"></i></span>
-                            <input type="text" id="userIdInput" class="form-control border-start-0" placeholder="User ID" value="1001">
+                            <span class="input-group-text bg-light border-end-0"><i
+                                    class="fas fa-user text-muted"></i></span>
+                            <input type="text" id="userIdInput" class="form-control border-start-0"
+                                placeholder="User ID" value="1001">
                             <button class="btn btn-primary btn-action" onclick="createOrder()">
                                 <i class="fas fa-plus me-1"></i> Create Order
                             </button>
                         </div>
-                        <small class="text-muted mt-2 d-block">Simulates placing a normal order with sufficient inventory.</small>
+                        <small class="text-muted mt-2 d-block">Simulates placing a normal order with sufficient
+                            inventory.</small>
                     </div>
                     <div class="col-md-6 ps-4">
                         <label class="form-label text-muted fw-bold">Failure Path (Saga Compensation)</label>
                         <div>
-                            <button class="btn btn-simulate btn-action w-100" onclick="simulateInventoryFailure()">
-                                <i class="fas fa-exclamation-triangle me-1"></i> Trigger Insufficient Inventory
+                            <button class="btn btn-simulate btn-action w-100" onclick="clearTestData()">
+                                <i class="fas fa-broom me-1"></i> Clear Test Data (Keep Products)
                             </button>
                         </div>
-                        <small class="text-muted mt-2 d-block">Attempts to order 999,999 items, forcing a compensation flow.</small>
+                        <small class="text-muted mt-2 d-block">One click to clear orders, saga logs, payments, wallets,
+                            and inventory logs while keeping product data.</small>
+
+                        <hr>
+                        <label class="form-label text-muted fw-bold">Wallet Balance (Payment Simulation)</label>
+                        <div class="input-group mb-2">
+                            <span class="input-group-text">User</span>
+                            <input type="number" id="walletUserIdInput" class="form-control" value="1001" min="1">
+                            <button class="btn btn-outline-secondary" onclick="loadWallet()">Load</button>
+                        </div>
+                        <div class="input-group mb-2">
+                            <span class="input-group-text">Balance</span>
+                            <input type="number" id="walletBalanceInput" class="form-control" step="0.01" min="0">
+                            <button class="btn btn-outline-primary" onclick="setWalletBalance()">Set</button>
+                        </div>
+                        <div class="mb-2">
+                            <span id="walletLevelBadge" class="badge bg-secondary">LEVEL: UNKNOWN</span>
+                        </div>
+                        <small id="walletInfo" class="text-muted d-block">Set low balance to simulate payment failure
+                            and trigger compensation.</small>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Unified Order & Saga View -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-chart-line me-2 text-primary"></i> Live Result Monitor</h5>
+                <small class="text-muted">Updated: <span id="monitorUpdatedAt">-</span></small>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="result-box">
+                            <div class="result-label">Wallet User</div>
+                            <div class="result-value" id="monitorWalletUser">-</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="result-box" id="monitorWalletBox">
+                            <div class="result-label">Wallet Balance</div>
+                            <div class="result-value" id="monitorWalletBalance">-</div>
+                            <small id="walletLevelHint" class="text-muted">Balance level: -</small>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="result-box">
+                            <div class="result-label">Last Payment Result</div>
+                            <div class="result-value" id="monitorPaymentResult">-</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="result-box">
+                            <div class="result-label">Last Inventory Update</div>
+                            <div class="result-value" id="monitorInventoryResult">-</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="result-box mb-0">
+                    <div class="result-label mb-2">Operation Log</div>
+                    <div class="log-panel" id="operationLog">No operation yet.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inventory View (Above Orders) -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="fas fa-box-open me-2 text-primary"></i> Current Inventory</h5>
+                <div class="d-flex align-items-center gap-2">
+                    <small id="inventoryRefreshState" class="text-muted">Auto-refresh on</small>
+                    <button class="btn btn-sm btn-outline-primary" onclick="refreshInventory(true)"><i
+                            class="fas fa-sync-alt"></i></button>
+                </div>
+            </div>
+            <div class="card-body table-container">
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Price</th>
+                                <th>Available</th>
+                                <th>Stock</th>
+                                <th>Last Update</th>
+                                <th>Source</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inventoryTableBody">
+                            <tr>
+                                <td colspan="7" class="text-center p-3 text-muted">Loading inventory...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Unified Order & Saga View + Payment Results -->
         <div class="row">
-            <div class="col-md-8">
+            <div class="col-md-9">
                 <div class="card">
                     <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-project-diagram me-2 text-primary"></i> Ongoing Transactions (Orders ↔ Sagas)</h5>
+                        <h5 class="mb-0"><i class="fas fa-project-diagram me-2 text-primary"></i> Ongoing Transactions
+                            (Orders ↔ Sagas)</h5>
                     </div>
                     <div class="card-body table-container">
                         <div class="table-responsive">
@@ -334,29 +651,14 @@
                 </div>
             </div>
 
-            <div class="col-md-4">
+            <div class="col-md-3">
                 <div class="card">
-                    <div class="card-header d-flex justify-content-between align-items-center">
-                        <h5 class="mb-0"><i class="fas fa-box-open me-2 text-primary"></i> Current Inventory</h5>
-                        <button class="btn btn-sm btn-outline-primary" onclick="refreshInventory()"><i class="fas fa-sync-alt"></i></button>
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-credit-card me-2 text-primary"></i> Payment Results</h5>
                     </div>
                     <div class="card-body table-container">
-                        <div class="table-responsive">
-                            <table class="table table-sm table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>Product</th>
-                                        <th>Available</th>
-                                        <th>Stock</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="inventoryTableBody">
-                                    <tr>
-                                        <td colspan="4" class="text-center p-3 text-muted">Loading inventory...</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        <div id="paymentTimeline" class="timeline">
+                            <div class="timeline-empty">No payment result yet.</div>
                         </div>
                     </div>
                 </div>
@@ -369,6 +671,112 @@
     <script>
         // Store preloaded data from Thymeleaf if needed, otherwise fallback to AJAX quickly
         let sagasMap = {};
+        let inventoryEditing = false;
+        let paymentInProgress = new Set();
+        let processedPaymentOrderIds = new Set();
+
+        function appendOperationLog(message, level = 'secondary') {
+            const now = new Date().toLocaleTimeString();
+            const current = $('#operationLog').html();
+            const row = `<div class="text-${level}"><span class="text-muted">[${now}]</span> ${message}</div>`;
+
+            if (current === 'No operation yet.') {
+                $('#operationLog').html(row);
+            } else {
+                $('#operationLog').prepend(row);
+            }
+
+            const rows = $('#operationLog').children();
+            if (rows.length > 12) {
+                rows.last().remove();
+            }
+
+            $('#monitorUpdatedAt').text(now);
+        }
+
+        function setMonitorWallet(userId, balance) {
+            $('#monitorWalletUser').text(userId || '-');
+
+            if (balance !== undefined && balance !== null && !isNaN(Number(balance))) {
+                const amount = Number(balance);
+                $('#monitorWalletBalance').text(`$${amount.toFixed(2)}`);
+                updateWalletVisualLevel(amount);
+            } else {
+                $('#monitorWalletBalance').text('-');
+                updateWalletVisualLevel(null);
+            }
+
+            $('#monitorUpdatedAt').text(new Date().toLocaleTimeString());
+        }
+
+        function updateWalletVisualLevel(amount) {
+            const box = $('#monitorWalletBox');
+            const input = $('#walletBalanceInput');
+            const badge = $('#walletLevelBadge');
+            const hint = $('#walletLevelHint');
+
+            box.removeClass('wallet-box-low wallet-box-medium wallet-box-high');
+            input.removeClass('wallet-input-low wallet-input-medium wallet-input-high');
+
+            if (amount === null || amount === undefined || isNaN(amount)) {
+                badge.attr('class', 'badge bg-secondary').text('LEVEL: UNKNOWN');
+                hint.text('Balance level: -');
+                return;
+            }
+
+            if (amount < 100) {
+                box.addClass('wallet-box-low');
+                input.addClass('wallet-input-low');
+                badge.attr('class', 'badge bg-danger').text('LEVEL: LOW');
+                hint.text('Balance level: LOW (< $100)');
+            } else if (amount < 300) {
+                box.addClass('wallet-box-medium');
+                input.addClass('wallet-input-medium');
+                badge.attr('class', 'badge bg-warning text-dark').text('LEVEL: MEDIUM');
+                hint.text('Balance level: MEDIUM ($100 - $299.99)');
+            } else {
+                box.addClass('wallet-box-high');
+                input.addClass('wallet-input-high');
+                badge.attr('class', 'badge bg-success').text('LEVEL: HIGH');
+                hint.text('Balance level: HIGH (>= $300)');
+            }
+        }
+
+        function setMonitorPaymentResult(text) {
+            $('#monitorPaymentResult').text(text || '-');
+            $('#monitorUpdatedAt').text(new Date().toLocaleTimeString());
+        }
+
+        function setMonitorInventoryResult(text) {
+            $('#monitorInventoryResult').text(text || '-');
+            $('#monitorUpdatedAt').text(new Date().toLocaleTimeString());
+        }
+
+        function setInventoryRefreshState() {
+            if (inventoryEditing) {
+                $('#inventoryRefreshState').text('Paused while editing').addClass('refresh-paused');
+            } else {
+                $('#inventoryRefreshState').text('Auto-refresh on').removeClass('refresh-paused');
+            }
+        }
+
+        function refreshWalletMonitor() {
+            const userId = parseInt($('#walletUserIdInput').val());
+            if (isNaN(userId) || userId <= 0) {
+                return;
+            }
+
+            $.ajax({
+                url: 'http://localhost:8083/api/payments/wallet/' + userId,
+                type: 'GET',
+                success: function (wallet) {
+                    setMonitorWallet(userId, wallet.balance);
+                    if (!$('#walletBalanceInput').is(':focus')) {
+                        $('#walletBalanceInput').val(wallet.balance);
+                    }
+                }
+            });
+        }
 
         function refreshDashboard() {
             $.ajax({
@@ -376,9 +784,67 @@
                 type: 'GET',
                 success: function (data) {
                     processSagas(data.sagas);
+                    refreshProcessedPaymentOrderIds();
                     updateUnifiedTable(data.orders);
+                    updatePaymentResultBoard();
                     updateStatistics(data.orders);
                     $('#lastRefresh').text(new Date().toLocaleTimeString());
+                }
+            });
+        }
+
+        function refreshProcessedPaymentOrderIds() {
+            $.ajax({
+                url: 'http://localhost:8083/api/payments/processed-order-ids',
+                type: 'GET',
+                success: function (data) {
+                    if (Array.isArray(data)) {
+                        processedPaymentOrderIds = new Set(data);
+                    } else {
+                        processedPaymentOrderIds = new Set();
+                    }
+                }
+            });
+        }
+
+        function updatePaymentResultBoard() {
+            let timeline = $('#paymentTimeline');
+
+            $.ajax({
+                url: 'http://localhost:8083/api/payments/recent',
+                type: 'GET',
+                success: function (payments) {
+                    if (!payments || payments.length === 0) {
+                        timeline.html('<div class="timeline-empty">No payment result yet.</div>');
+                        return;
+                    }
+
+                    timeline.empty();
+                    payments.forEach((payment, idx) => {
+                        const success = String(payment.status || '').toUpperCase() === 'SUCCESS';
+                        const resultBadge = success
+                            ? '<span class="badge bg-success">SUCCESS</span>'
+                            : '<span class="badge bg-danger">FAILED</span>';
+                        const itemClass = idx === 0 ? 'timeline-item latest' : 'timeline-item';
+                        const timeStr = payment.paymentTime ? new Date(payment.paymentTime).toLocaleString() : '-';
+                        const amount = payment.amount !== undefined && payment.amount !== null
+                            ? '$' + Number(payment.amount).toFixed(2)
+                            : '-';
+
+                        timeline.append(`
+                            <div class="${itemClass}">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <div class="fw-bold small">${payment.orderId || '-'}</div>
+                                    ${resultBadge}
+                                </div>
+                                <div class="small text-muted">Amount: ${amount}</div>
+                                <div class="timeline-time">${timeStr}</div>
+                            </div>
+                        `);
+                    });
+                },
+                error: function () {
+                    timeline.html('<div class="timeline-empty">Failed to load payment results.</div>');
                 }
             });
         }
@@ -414,6 +880,7 @@
 
             orders.forEach(order => {
                 let orderStatusClass = 'status-' + order.status.toLowerCase();
+                let orderStatusLabel = getOrderStatusLabel(order.status);
                 let saga = sagasMap[order.sagaId];
 
                 let sagaHtml = '';
@@ -444,11 +911,12 @@
 
                 // Add payment action buttons if confirmed
                 let paymentHtml = '';
-                if (order.status === 'CONFIRMED') {
+                if (canShowPaymentButton(order)) {
+                    const amount = Number(order.totalAmount || 0).toFixed(2);
+                    const buttonDisabled = paymentInProgress.has(order.orderId) ? 'disabled' : '';
                     paymentHtml = `
                     <div class="mt-2">
-                        <button class="btn btn-sm btn-success" onclick="processPayment('${order.orderId}', 1000, 'SUCCESS')">Pay Success</button>
-                        <button class="btn btn-sm btn-danger" onclick="processPayment('${order.orderId}', 1000, 'FAILED')">Pay Fail</button>
+                        <button class="btn btn-sm btn-success" ${buttonDisabled} onclick="processPayment('${order.orderId}', this)">Pay Now ($${amount})</button>
                     </div>`;
                 }
 
@@ -463,23 +931,70 @@
                             ${itemsHtml}
                             ${paymentHtml}
                         </td>
-                        <td><span class="status-badge ${orderStatusClass}">${order.status}</span></td>
+                        <td>
+                            <span class="status-badge ${orderStatusClass}">${order.status}</span>
+                            <div class="status-note">${orderStatusLabel}</div>
+                        </td>
                         ${sagaHtml}
                     </tr>
                 `);
             });
         }
 
-        function processPayment(orderId, amount, status) {
+        function getOrderStatusLabel(status) {
+            const labels = {
+                PENDING: 'Pending inventory reservation',
+                CONFIRMED: 'Ready for payment',
+                PAID: 'Payment completed',
+                CANCELLED: 'Cancelled (compensated after failure)',
+                FAILED: 'Processing failed'
+            };
+            return labels[status] || '-';
+        }
+
+        function canShowPaymentButton(order) {
+            if (!order || !order.status) {
+                return false;
+            }
+
+            // Confirmed orders are payable only when there is no existing payment record.
+            return order.status === 'CONFIRMED'
+                && !paymentInProgress.has(order.orderId)
+                && !processedPaymentOrderIds.has(order.orderId);
+        }
+
+        function processPayment(orderId, buttonEl) {
+            if (paymentInProgress.has(orderId)) {
+                return;
+            }
+
+            paymentInProgress.add(orderId);
+            if (buttonEl) {
+                buttonEl.disabled = true;
+                buttonEl.innerText = 'Processing...';
+            }
+
             $.ajax({
-                url: 'http://localhost:8083/api/payments/' + orderId + '?amount=' + amount + '&status=' + status,
+                url: 'http://localhost:8083/api/payments/' + orderId,
                 type: 'POST',
-                success: function() {
-                    alert('Payment processed: ' + status);
+                success: function (resp) {
+                    alert('Payment result: ' + (resp.status || 'DONE'));
+                    setMonitorPaymentResult((resp.status || 'DONE') + ' (' + orderId + ')');
+                    appendOperationLog('Payment ' + (resp.status || 'DONE') + ' for order ' + orderId, 'primary');
                     refreshDashboard();
+                    refreshInventory();
+                    refreshWalletMonitor();
                 },
-                error: function() {
-                    alert('Failed to process payment');
+                error: function (xhr) {
+                    const msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Failed to process payment';
+                    setMonitorPaymentResult('REJECTED (' + orderId + ')');
+                    appendOperationLog('Payment rejected for order ' + orderId + ': ' + msg, 'danger');
+                    alert(msg);
+                },
+                complete: function () {
+                    paymentInProgress.delete(orderId);
+                    processedPaymentOrderIds.add(orderId);
+                    refreshDashboard();
                 }
             });
         }
@@ -490,6 +1005,7 @@
             let pending = orders ? orders.filter(o => o.status === 'PENDING').length : 0;
             let cancelled = orders ? orders.filter(o => o.status === 'CANCELLED').length : 0;
             let paid = orders ? orders.filter(o => o.status === 'PAID').length : 0;
+            let failed = orders ? orders.filter(o => o.status === 'FAILED').length : 0;
 
             // Animate counters if they changed (simple text update for now)
             $('#totalOrders').text(total);
@@ -497,13 +1013,14 @@
             $('#pendingOrders').text(pending);
             $('#cancelledOrders').text(cancelled);
             $('#paidOrders').text(paid);
+            $('#failedOrders').text(failed);
         }
 
         function createOrder() {
             let userId = $('#userIdInput').val() || '1001';
 
             let items = [];
-            $('.product-check:checked').each(function() {
+            $('.product-check:checked').each(function () {
                 let pid = $(this).val();
                 let qty = parseInt($('#qty' + pid).val()) || 1;
                 items.push({ productId: parseInt(pid), quantity: qty });
@@ -531,110 +1048,237 @@
                 error: function () {
                     alert('Failed to create order');
                 },
-                complete: function() {
+                complete: function () {
                     setTimeout(() => btn.prop('disabled', false).html('<i class="fas fa-plus me-1"></i> Create Order'), 500);
                 }
             });
         }
 
-        function simulateInventoryFailure() {
-            let userId = $('#userIdInput').val() || '1001';
-
-            let items = [];
-            $('.product-check:checked').each(function() {
-                items.push({ productId: parseInt($(this).val()), quantity: 999999 });
-            });
-
-            if (items.length === 0) {
-                alert("Please select at least one product");
+        function clearTestData() {
+            if (!confirm('This will clear test data in Order/Inventory/Payment services and keep product records. Continue?')) {
                 return;
             }
 
             let btn = $('.btn-simulate');
-            btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Triggering...');
+            btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Clearing...');
 
             $.ajax({
-                url: '/api/orders',
-                type: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({
-                    userId: parseInt(userId),
-                    items: items
-                }),
-                success: function (response) {
-                    refreshDashboard();
+                url: 'http://localhost:8081/api/inventory/test-data',
+                type: 'DELETE',
+                success: function () {
+                    $.ajax({
+                        url: 'http://localhost:8083/api/payments/test-data',
+                        type: 'DELETE',
+                        success: function () {
+                            $.ajax({
+                                url: '/api/orders/test-data',
+                                type: 'DELETE',
+                                success: function () {
+                                    appendOperationLog('Test data cleared (products kept)', 'success');
+                                    setMonitorPaymentResult('-');
+                                    setMonitorInventoryResult('-');
+                                    processedPaymentOrderIds = new Set();
+                                    refreshDashboard();
+                                    refreshInventory(true);
+                                    refreshWalletMonitor();
+                                    alert('Test data cleared successfully.');
+                                },
+                                error: function (xhr) {
+                                    const msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Failed to clear order test data';
+                                    appendOperationLog('Order clear failed: ' + msg, 'danger');
+                                    alert(msg);
+                                },
+                                complete: function () {
+                                    btn.prop('disabled', false).html('<i class="fas fa-broom me-1"></i> Clear Test Data (Keep Products)');
+                                }
+                            });
+                        },
+                        error: function (xhr) {
+                            const msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Failed to clear payment test data';
+                            appendOperationLog('Payment clear failed: ' + msg, 'danger');
+                            alert(msg);
+                            btn.prop('disabled', false).html('<i class="fas fa-broom me-1"></i> Clear Test Data (Keep Products)');
+                        }
+                    });
                 },
-                error: function () {
-                    alert('Failed to simulate order failure');
-                },
-                complete: function() {
-                    setTimeout(() => btn.prop('disabled', false).html('<i class="fas fa-exclamation-triangle me-1"></i> Trigger Insufficient Inventory'), 500);
+                error: function (xhr) {
+                    const msg = xhr.responseText || 'Failed to clear inventory test data';
+                    appendOperationLog('Inventory clear failed: ' + msg, 'danger');
+                    alert(msg);
+                    btn.prop('disabled', false).html('<i class="fas fa-broom me-1"></i> Clear Test Data (Keep Products)');
                 }
             });
         }
 
-        function refreshInventory() {
+        function refreshInventory(force = false) {
+            if (inventoryEditing && !force) {
+                setInventoryRefreshState();
+                return;
+            }
+
             $.ajax({
                 url: 'http://localhost:8081/api/inventory',
                 type: 'GET',
                 success: function (data) {
+                    setInventoryRefreshState();
                     let tbody = $('#inventoryTableBody');
                     tbody.empty();
                     if (!data || data.length === 0) {
-                        tbody.html('<tr><td colspan="4" class="text-center text-muted">No inventory data</td></tr>');
+                        tbody.html('<tr><td colspan="7" class="text-center text-muted">No inventory data</td></tr>');
                         return;
                     }
                     data.forEach(item => {
-                        let available = item.stock - item.reserved;
+                        let available = item.available;
+                        let displayPrice = (item.price !== null && item.price !== undefined)
+                            ? '$' + (Number(item.price) / 100).toFixed(2)
+                            : '-';
+                        let lastUpdate = item.lastUpdateAt ? new Date(item.lastUpdateAt).toLocaleString() : '-';
+                        let reservedClass = Number(item.reserved) > 0 ? 'reserved-chip reserved-active' : 'reserved-chip reserved-none';
+                        let sourceBadge = item.lastUpdateSource === 'MANUAL'
+                            ? '<span class="badge bg-warning text-dark">MANUAL</span>'
+                            : (item.lastUpdateSource === 'SAGA'
+                                ? '<span class="badge bg-info text-dark">SAGA</span>'
+                                : '<span class="badge bg-secondary">-</span>');
                         tbody.append(`
                             <tr>
-                                <td><span class="fw-bold">${item.productName || 'Prod '+item.productId}</span></td>
+                                <td><span class="fw-bold">${item.productName || 'Prod ' + item.productId}</span></td>
+                                <td>${displayPrice}</td>
                                 <td><span class="badge bg-success">${available}</span></td>
-                                <td>${item.stock} (R:${item.reserved})</td>
+                                <td>
+                                    <span class="stock-chip">Stock ${item.stock}</span>
+                                    <span class="${reservedClass}">R:${item.reserved}</span>
+                                </td>
+                                <td><small>${lastUpdate}</small></td>
+                                <td>${sourceBadge}</td>
                                 <td>
                                     <div class="input-group input-group-sm" style="width: 130px;">
-                                        <input type="number" id="stockDelta_${item.productId}" class="form-control text-center" value="">
-                                        <button class="btn btn-primary" onclick="applyCustomInventory(${item.productId})">Update</button>
+                                        <input type="number" id="stockValue_${item.productId}" class="form-control text-center" value="${item.stock}" min="0">
+                                        <button class="btn btn-primary" onclick="setProductStock(${item.productId})">Set</button>
                                     </div>
                                 </td>
                             </tr>
                         `);
                     });
                 },
-                error: function() {
-                    $('#inventoryTableBody').html('<tr><td colspan="4" class="text-center text-danger">Failed to load from localhost:8081</td></tr>');
+                error: function () {
+                    $('#inventoryTableBody').html('<tr><td colspan="7" class="text-center text-danger">Failed to load from localhost:8081</td></tr>');
+                    appendOperationLog('Failed to refresh inventory', 'danger');
                 }
             });
         }
 
 
-        function applyCustomInventory(productId) {
-            let amount = parseInt($(`#stockDelta_${productId}`).val());
-            if (isNaN(amount) || amount === 0) return;
+        function setProductStock(productId) {
+            let value = parseInt($(`#stockValue_${productId}`).val());
+            if (isNaN(value) || value < 0) {
+                alert('Stock must be a non-negative integer');
+                return;
+            }
 
             $.ajax({
-                url: 'http://localhost:8081/api/inventory/' + productId + '/add?amount=' + amount,
-                type: 'POST',
-                success: function() {
+                url: 'http://localhost:8081/api/inventory/' + productId + '/stock?value=' + value,
+                type: 'PUT',
+                success: function () {
+                    setMonitorInventoryResult('Product ' + productId + ' -> ' + value);
+                    appendOperationLog('Inventory updated for product ' + productId + ': stock=' + value, 'success');
                     refreshInventory();
                 },
-                error: function() {
-                    alert('Failed to update inventory');
+                error: function (xhr) {
+                    const msg = xhr.responseText || 'Failed to update inventory';
+                    setMonitorInventoryResult('UPDATE FAILED (P' + productId + ')');
+                    appendOperationLog('Inventory update failed for product ' + productId + ': ' + msg, 'danger');
+                    alert(msg);
+                }
+            });
+        }
+
+        function syncWalletUserFromOrderUser() {
+            const userId = parseInt($('#userIdInput').val());
+            if (!isNaN(userId) && userId > 0) {
+                $('#walletUserIdInput').val(userId);
+            }
+        }
+
+        function loadWallet() {
+            const userId = parseInt($('#walletUserIdInput').val());
+            if (isNaN(userId) || userId <= 0) {
+                alert('Please enter a valid user ID');
+                return;
+            }
+
+            $.ajax({
+                url: 'http://localhost:8083/api/payments/wallet/' + userId,
+                type: 'GET',
+                success: function (wallet) {
+                    $('#walletBalanceInput').val(wallet.balance);
+                    $('#walletInfo').text('User ' + userId + ' wallet balance: ' + wallet.balance);
+                    setMonitorWallet(userId, wallet.balance);
+                    appendOperationLog('Wallet loaded for user ' + userId + ': balance=' + wallet.balance, 'secondary');
+                },
+                error: function () {
+                    appendOperationLog('Failed to load wallet for user ' + userId, 'danger');
+                    alert('Failed to load wallet balance');
+                }
+            });
+        }
+
+        function setWalletBalance() {
+            const userId = parseInt($('#walletUserIdInput').val());
+            const balance = parseFloat($('#walletBalanceInput').val());
+            if (isNaN(userId) || userId <= 0) {
+                alert('Please enter a valid user ID');
+                return;
+            }
+            if (isNaN(balance) || balance < 0) {
+                alert('Balance must be >= 0');
+                return;
+            }
+
+            $.ajax({
+                url: 'http://localhost:8083/api/payments/wallet/' + userId + '?balance=' + balance,
+                type: 'PUT',
+                success: function (wallet) {
+                    $('#walletBalanceInput').val(wallet.balance);
+                    $('#walletInfo').text('User ' + userId + ' wallet balance updated to: ' + wallet.balance);
+                    setMonitorWallet(userId, wallet.balance);
+                    appendOperationLog('Wallet updated for user ' + userId + ': balance=' + wallet.balance, 'success');
+                },
+                error: function (xhr) {
+                    const msg = (xhr.responseJSON && xhr.responseJSON.message) ? xhr.responseJSON.message : 'Failed to update wallet balance';
+                    appendOperationLog('Wallet update failed for user ' + userId + ': ' + msg, 'danger');
+                    alert(msg);
                 }
             });
         }
 
         $(document).ready(function () {
             // Initial render
+            syncWalletUserFromOrderUser();
             refreshDashboard();
             refreshInventory();
+            loadWallet();
+            refreshWalletMonitor();
+            setInventoryRefreshState();
+
+            $('#userIdInput').on('change keyup', function () {
+                syncWalletUserFromOrderUser();
+            });
+
+            $(document).on('focusin', 'input[id^="stockValue_"]', function () {
+                inventoryEditing = true;
+                setInventoryRefreshState();
+            });
+
+            $(document).on('focusout', 'input[id^="stockValue_"]', function () {
+                inventoryEditing = false;
+                setInventoryRefreshState();
+            });
             // Polling for real-time updates
             setInterval(refreshDashboard, 2000);
             setInterval(refreshInventory, 5000);
+            setInterval(refreshWalletMonitor, 5000);
         });
     </script>
 </body>
 
 </html>
-
-

@@ -9,6 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 /**
  * Order Controller - REST API endpoints for order operations
  * Provides endpoints for creating orders and checking order status
@@ -58,6 +60,18 @@ public class OrderController {
         } catch (RuntimeException e) {
             log.error("Order not found: {}", orderId);
             return ResponseEntity.notFound().build();
+        }
+    }
+
+    @DeleteMapping("/test-data")
+    public ResponseEntity<?> clearTestData() {
+        try {
+            orderService.clearTestData();
+            return ResponseEntity.ok(Map.of("message", "Order and saga test data cleared"));
+        } catch (Exception e) {
+            log.error("Failed to clear order test data", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", "Failed to clear order test data"));
         }
     }
 }

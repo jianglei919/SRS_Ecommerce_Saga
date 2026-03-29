@@ -21,223 +21,244 @@ import java.util.Map;
 import java.util.HashMap;
 
 /**
- * Order Service - Core business logic for order operations and saga orchestration
- * This service acts as the saga orchestrator, managing the distributed transaction
+ * Order Service - Core business logic for order operations and saga
+ * orchestration
+ * This service acts as the saga orchestrator, managing the distributed
+ * transaction
  */
 @Slf4j
 @Service
 public class OrderService {
 
-    private final OrderRepository orderRepository;
-    private final SagaLogRepository sagaLogRepository;
-    private final RabbitTemplate rabbitTemplate;
+        private final OrderRepository orderRepository;
+        private final SagaLogRepository sagaLogRepository;
+        private final RabbitTemplate rabbitTemplate;
 
-    public OrderService(OrderRepository orderRepository,
-                       SagaLogRepository sagaLogRepository,
-                       RabbitTemplate rabbitTemplate) {
-        this.orderRepository = orderRepository;
-        this.sagaLogRepository = sagaLogRepository;
-        this.rabbitTemplate = rabbitTemplate;
-    }
+        public OrderService(OrderRepository orderRepository,
+                        SagaLogRepository sagaLogRepository,
+                        RabbitTemplate rabbitTemplate) {
+                this.orderRepository = orderRepository;
+                this.sagaLogRepository = sagaLogRepository;
+                this.rabbitTemplate = rabbitTemplate;
+        }
 
-    /**
-     * Create order and initiate saga
-     * This is the happy path where order is created with PENDING status
-     * and OrderCreatedEvent is published to trigger inventory service
-     *
-     * @param request Create order request containing user ID and items
-     * @return Response with order ID and status
-     */
-    @Transactional
-    public CreateOrderResponse createOrder(CreateOrderRequest request) {
-        log.info("Creating order for user: {}", request.getUserId());
+        /**
+         * Create order and initiate saga
+         * This is the happy path where order is created with PENDING status
+         * and OrderCreatedEvent is published to trigger inventory service
+         *
+         * @param request Create order request containing user ID and items
+         * @return Response with order ID and status
+         */
+        @Transactional
+        public CreateOrderResponse createOrder(CreateOrderRequest request) {
+                log.info("Creating order for user: {}", request.getUserId());
 
-        // Generate unique identifiers
-        String orderId = "ORD-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-        String sagaId = UUID.randomUUID().toString();
+                // Generate unique identifiers
+                String orderId = "ORD-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+                String sagaId = UUID.randomUUID().toString();
 
-        // Calculate total amount (simplified - assumes pre-calculation from client)
-        BigDecimal totalAmount = calculateTotalAmount(request);
+                // Calculate total amount (simplified - assumes pre-calculation from client)
+                BigDecimal totalAmount = calculateTotalAmount(request);
 
-        // Define product names mapping
-        Map<Long, String> productNameMap = new HashMap<>();
-        productNameMap.put(1L, "iPhone 16");
-        productNameMap.put(2L, "MacBook Pro");
-        productNameMap.put(3L, "iPad Air");
-        productNameMap.put(4L, "Apple Watch");
+                // Define product names mapping
+                Map<Long, String> productNameMap = new HashMap<>();
+                productNameMap.put(1L, "iPhone 16");
+                productNameMap.put(2L, "MacBook Pro");
+                productNameMap.put(3L, "iPad Air");
+                productNameMap.put(4L, "Apple Watch");
 
-        String productNames = request.getItems().stream()
-                .map(item -> productNameMap.getOrDefault(item.getProductId(), "Product " + item.getProductId()) + " (" + item.getQuantity() + ")")
-                .collect(Collectors.joining(", "));
+                String productNames = request.getItems().stream()
+                                .map(item -> productNameMap.getOrDefault(item.getProductId(),
+                                                "Product " + item.getProductId()) + " (" + item.getQuantity() + ")")
+                                .collect(Collectors.joining(", "));
 
-        // Step 1: Create order locally with PENDING status (local ACID transaction)
-        Order order = Order.builder()
-                .orderId(orderId)
-                .userId(request.getUserId())
-                .totalAmount(totalAmount)
-                .status(Order.OrderStatus.PENDING)
-                .productNames(productNames)
-                .sagaId(sagaId)
-                .build();
-        orderRepository.save(order);
-        log.info("Order created with ID: {}, Saga ID: {}, Status: PENDING", orderId, sagaId);
+                // Step 1: Create order locally with PENDING status (local ACID transaction)
+                Order order = Order.builder()
+                                .orderId(orderId)
+                                .userId(request.getUserId())
+                                .totalAmount(totalAmount)
+                                .status(Order.OrderStatus.PENDING)
+                                .productNames(productNames)
+                                .sagaId(sagaId)
+                                .build();
+                orderRepository.save(order);
+                log.info("Order created with ID: {}, Saga ID: {}, Status: PENDING", orderId, sagaId);
 
-        // Step 2: Create saga log entry
-        SagaLog sagaLog = SagaLog.builder()
-                .sagaId(sagaId)
-                .currentStep("ORDER_CREATED")
-                .status(SagaLog.SagaStatus.STARTED)
-                .build();
-        sagaLogRepository.save(sagaLog);
-        log.info("Saga log created for saga ID: {}", sagaId);
+                // Step 2: Create saga log entry
+                SagaLog sagaLog = SagaLog.builder()
+                                .sagaId(sagaId)
+                                .currentStep("ORDER_CREATED")
+                                .status(SagaLog.SagaStatus.STARTED)
+                                .build();
+                sagaLogRepository.save(sagaLog);
+                log.info("Saga log created for saga ID: {}", sagaId);
 
-        // Step 3: Publish OrderCreatedEvent to RabbitMQ
-        // This triggers the Inventory Service to attempt reservation
-        OrderCreatedEvent event = OrderCreatedEvent.builder()
-                .sagaId(sagaId)
-                .orderId(orderId)
-                .userId(request.getUserId())
-                .items(request.getItems())
-                .totalAmount(totalAmount)
-                .build();
+                // Step 3: Publish OrderCreatedEvent to RabbitMQ
+                // This triggers the Inventory Service to attempt reservation
+                OrderCreatedEvent event = OrderCreatedEvent.builder()
+                                .sagaId(sagaId)
+                                .orderId(orderId)
+                                .userId(request.getUserId())
+                                .items(request.getItems())
+                                .totalAmount(totalAmount)
+                                .build();
 
-        rabbitTemplate.convertAndSend(
-                RabbitMQConfig.EVENT_EXCHANGE,
-                RabbitMQConfig.ORDER_CREATED_ROUTING_KEY,
-                event
-        );
-        log.info("OrderCreatedEvent published to RabbitMQ for saga ID: {}", sagaId);
+                rabbitTemplate.convertAndSend(
+                                RabbitMQConfig.EVENT_EXCHANGE,
+                                RabbitMQConfig.ORDER_CREATED_ROUTING_KEY,
+                                event);
+                log.info("OrderCreatedEvent published to RabbitMQ for saga ID: {}", sagaId);
 
-        return CreateOrderResponse.builder()
-                .orderId(orderId)
-                .status("PENDING")
-                .build();
-    }
+                return CreateOrderResponse.builder()
+                                .orderId(orderId)
+                                .status("PENDING")
+                                .build();
+        }
 
-    /**
-     * Handle inventory reservation success
-     * Called when Inventory Service successfully reserves stock
-     * Updates order status to CONFIRMED and completes saga
-     *
-     * @param orderId Order ID
-     * @param sagaId Saga ID
-     */
-    @Transactional
-    public void handleInventoryReserved(String orderId, String sagaId) {
-        log.info("Handling inventory reserved for order: {}, saga: {}", orderId, sagaId);
+        /**
+         * Handle inventory reservation success
+         * Called when Inventory Service successfully reserves stock
+         * Updates order status to CONFIRMED and completes saga
+         *
+         * @param orderId Order ID
+         * @param sagaId  Saga ID
+         */
+        @Transactional
+        public void handleInventoryReserved(String orderId, String sagaId) {
+                log.info("Handling inventory reserved for order: {}, saga: {}", orderId, sagaId);
 
-        // Fetch and update order
-        Order order = orderRepository.findByOrderId(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
+                // Fetch and update order
+                Order order = orderRepository.findByOrderId(orderId)
+                                .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
 
-        order.setStatus(Order.OrderStatus.CONFIRMED);
-        orderRepository.save(order);
-        log.info("Order confirmed: {}", orderId);
+                order.setStatus(Order.OrderStatus.CONFIRMED);
+                orderRepository.save(order);
+                log.info("Order confirmed: {}", orderId);
 
-        // Update saga log
-        SagaLog sagaLog = sagaLogRepository.findById(sagaId)
-                .orElseThrow(() -> new RuntimeException("Saga log not found: " + sagaId));
-        sagaLog.setCurrentStep("AWAITING_PAYMENT");
-        sagaLogRepository.save(sagaLog);
-        log.info("Saga waiting for payment: {}", sagaId);
-    }
+                // Update saga log
+                SagaLog sagaLog = sagaLogRepository.findById(sagaId)
+                                .orElseThrow(() -> new RuntimeException("Saga log not found: " + sagaId));
+                sagaLog.setCurrentStep("AWAITING_PAYMENT");
+                sagaLogRepository.save(sagaLog);
+                log.info("Saga waiting for payment: {}", sagaId);
+        }
 
-    /**
-     * Handle inventory reservation failure
-     * Called when Inventory Service fails to reserve stock
-     * Triggers compensation: order is cancelled
-     *
-     * @param orderId Order ID
-     * @param sagaId Saga ID
-     * @param reason Reason for failure
-     */
-    @Transactional
-    public void handleInventoryReservationFailed(String orderId, String sagaId, String reason) {
-        log.error("Handling inventory reservation failure for order: {}, reason: {}", orderId, reason);
+        /**
+         * Handle inventory reservation failure
+         * Called when Inventory Service fails to reserve stock
+         * Triggers compensation: order is cancelled
+         *
+         * @param orderId Order ID
+         * @param sagaId  Saga ID
+         * @param reason  Reason for failure
+         */
+        @Transactional
+        public void handleInventoryReservationFailed(String orderId, String sagaId, String reason) {
+                log.error("Handling inventory reservation failure for order: {}, reason: {}", orderId, reason);
 
-        // Fetch and update order - compensation
-        Order order = orderRepository.findByOrderId(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
+                // Fetch and update order - compensation
+                Order order = orderRepository.findByOrderId(orderId)
+                                .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
 
-        order.setStatus(Order.OrderStatus.CANCELLED);
-        orderRepository.save(order);
-        log.info("Order cancelled due to inventory failure: {}", orderId);
+                order.setStatus(Order.OrderStatus.CANCELLED);
+                orderRepository.save(order);
+                log.info("Order cancelled due to inventory failure: {}", orderId);
 
-        // Update saga log
-        SagaLog sagaLog = sagaLogRepository.findById(sagaId)
-                .orElseThrow(() -> new RuntimeException("Saga log not found: " + sagaId));
-        sagaLog.setCurrentStep("COMPENSATED");
-        sagaLog.setStatus(SagaLog.SagaStatus.COMPENSATED);
-        sagaLogRepository.save(sagaLog);
-        log.info("Saga compensated: {}", sagaId);
-    }
+                // Update saga log
+                SagaLog sagaLog = sagaLogRepository.findById(sagaId)
+                                .orElseThrow(() -> new RuntimeException("Saga log not found: " + sagaId));
+                sagaLog.setCurrentStep("COMPENSATED");
+                sagaLog.setStatus(SagaLog.SagaStatus.COMPENSATED);
+                sagaLogRepository.save(sagaLog);
+                log.info("Saga compensated: {}", sagaId);
+        }
 
-    @Transactional
-    public void handlePaymentSuccess(String orderId) {
-        log.info("Handling payment success for order: {}", orderId);
+        @Transactional
+        public void handlePaymentSuccess(String orderId) {
+                log.info("Handling payment success for order: {}", orderId);
 
-        Order order = orderRepository.findByOrderId(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
+                Order order = orderRepository.findByOrderId(orderId)
+                                .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
 
-        // Order is fully completed
-        order.setStatus(Order.OrderStatus.PAID);
-        orderRepository.save(order);
+                // Order is fully completed
+                order.setStatus(Order.OrderStatus.PAID);
+                orderRepository.save(order);
 
-        SagaLog sagaLog = sagaLogRepository.findById(order.getSagaId())
-                .orElseThrow(() -> new RuntimeException("Saga log not found: " + order.getSagaId()));
-        sagaLog.setCurrentStep("SAGA_COMPLETED");
-        sagaLog.setStatus(SagaLog.SagaStatus.COMPLETED);
-        sagaLogRepository.save(sagaLog);
-        log.info("Saga fully completed after payment: {}", order.getSagaId());
-    }
+                SagaLog sagaLog = sagaLogRepository.findById(order.getSagaId())
+                                .orElseThrow(() -> new RuntimeException("Saga log not found: " + order.getSagaId()));
+                sagaLog.setCurrentStep("SAGA_COMPLETED");
+                sagaLog.setStatus(SagaLog.SagaStatus.COMPLETED);
+                sagaLogRepository.save(sagaLog);
+                log.info("Saga fully completed after payment: {}", order.getSagaId());
+        }
 
-    @Transactional
-    public void handlePaymentFailed(String orderId, String reason) {
-        log.error("Handling payment failure for order: {}, reason: {}", orderId, reason);
+        @Transactional
+        public void handlePaymentFailed(String orderId, String reason) {
+                log.error("Handling payment failure for order: {}, reason: {}", orderId, reason);
 
-        Order order = orderRepository.findByOrderId(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
+                Order order = orderRepository.findByOrderId(orderId)
+                                .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
 
-        order.setStatus(Order.OrderStatus.CANCELLED);
-        orderRepository.save(order);
+                order.setStatus(Order.OrderStatus.CANCELLED);
+                orderRepository.save(order);
 
-        SagaLog sagaLog = sagaLogRepository.findById(order.getSagaId())
-                .orElseThrow(() -> new RuntimeException("Saga log not found: " + order.getSagaId()));
-        sagaLog.setCurrentStep("COMPENSATING_INVENTORY");
-        sagaLog.setStatus(SagaLog.SagaStatus.COMPENSATED);
-        sagaLogRepository.save(sagaLog);
+                SagaLog sagaLog = sagaLogRepository.findById(order.getSagaId())
+                                .orElseThrow(() -> new RuntimeException("Saga log not found: " + order.getSagaId()));
+                sagaLog.setCurrentStep("COMPENSATING_INVENTORY");
+                sagaLog.setStatus(SagaLog.SagaStatus.COMPENSATED);
+                sagaLogRepository.save(sagaLog);
 
-        // Need to compensate inventory
-        OrderCancelledEvent event = OrderCancelledEvent.builder()
-                .sagaId(order.getSagaId())
-                .orderId(orderId)
-                .build();
+                // Need to compensate inventory
+                OrderCancelledEvent event = OrderCancelledEvent.builder()
+                                .sagaId(order.getSagaId())
+                                .orderId(orderId)
+                                .build();
 
-        rabbitTemplate.convertAndSend(
-                RabbitMQConfig.EVENT_EXCHANGE,
-                "order.cancelled",
-                event
-        );
-        log.info("OrderCancelledEvent published for order: {} to compensate inventory", orderId);
-    }
+                rabbitTemplate.convertAndSend(
+                                RabbitMQConfig.EVENT_EXCHANGE,
+                                "order.cancelled",
+                                event);
+                log.info("OrderCancelledEvent published for order: {} to compensate inventory", orderId);
+        }
 
-    /**
-     * Get order by order ID
-     */
-    public Order getOrderByOrderId(String orderId) {
-        return orderRepository.findByOrderId(orderId)
-                .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
-    }
+        /**
+         * Get order by order ID
+         */
+        public Order getOrderByOrderId(String orderId) {
+                return orderRepository.findByOrderId(orderId)
+                                .orElseThrow(() -> new RuntimeException("Order not found: " + orderId));
+        }
 
-    /**
-     * Calculate total amount (simplified - assuming items already have prices)
-     * In production, this would fetch prices from inventory service
-     */
-    private BigDecimal calculateTotalAmount(CreateOrderRequest request) {
-        // Simplified calculation - in production, fetch actual prices
-        // For now, assume each item quantity is multiplied by a default price
-        BigDecimal total = BigDecimal.ZERO;
-        // This is a placeholder - actual implementation would get prices from product catalog
-        return BigDecimal.valueOf(1000); // Default for demo
-    }
+        /**
+         * Clear non-product test data in order-service.
+         */
+        @Transactional
+        public void clearTestData() {
+                log.warn("Clearing order and saga test data");
+                orderRepository.deleteAllInBatch();
+                sagaLogRepository.deleteAllInBatch();
+        }
+
+        /**
+         * Calculate total amount (simplified - assuming items already have prices)
+         * In production, this would fetch prices from inventory service
+         */
+        private BigDecimal calculateTotalAmount(CreateOrderRequest request) {
+                // Keep prices aligned with inventory-service display values.
+                Map<Long, BigDecimal> priceMap = new HashMap<>();
+                priceMap.put(1L, BigDecimal.valueOf(79.99));
+                priceMap.put(2L, BigDecimal.valueOf(199.99));
+                priceMap.put(3L, BigDecimal.valueOf(59.99));
+                priceMap.put(4L, BigDecimal.valueOf(39.99));
+
+                BigDecimal total = BigDecimal.ZERO;
+                for (var item : request.getItems()) {
+                        BigDecimal unitPrice = priceMap.getOrDefault(item.getProductId(), BigDecimal.ZERO);
+                        BigDecimal line = unitPrice.multiply(BigDecimal.valueOf(item.getQuantity()));
+                        total = total.add(line);
+                }
+
+                return total;
+        }
 }

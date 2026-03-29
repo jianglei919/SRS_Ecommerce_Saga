@@ -47,7 +47,8 @@ public class InventoryLog {
      * Inventory action enum
      */
     public enum InventoryAction {
-        RESERVE,   // Reserve inventory for an order
-        RELEASE    // Release reserved inventory (compensation)
+        RESERVE, // Reserve inventory for an order
+        RELEASE, // Release reserved inventory (compensation)
+        MANUAL_SET // Manual stock adjustment from dashboard
     }
 }

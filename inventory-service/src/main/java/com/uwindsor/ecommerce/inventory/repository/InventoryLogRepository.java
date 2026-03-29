@@ -12,4 +12,6 @@ import java.util.List;
 @Repository
 public interface InventoryLogRepository extends JpaRepository<InventoryLog, Long> {
     List<InventoryLog> findByOrderId(String orderId);
+
+    java.util.Optional<InventoryLog> findTopByProductIdOrderByTimestampDesc(Long productId);
 }
