@@ -249,6 +249,24 @@
                 <div class="row align-items-center">
                     <div class="col-md-6 border-end">
                         <label class="form-label text-muted fw-bold">Happy Path (Successful Order)</label>
+                        <div class="mb-2">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input product-check" type="checkbox" value="1" id="prod1" checked>
+                                <label class="form-check-label" for="prod1">iPhone 16</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input product-check" type="checkbox" value="2" id="prod2">
+                                <label class="form-check-label" for="prod2">MacBook Pro</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input product-check" type="checkbox" value="3" id="prod3">
+                                <label class="form-check-label" for="prod3">iPad Air</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input product-check" type="checkbox" value="4" id="prod4">
+                                <label class="form-check-label" for="prod4">Apple Watch</label>
+                            </div>
+                        </div>
                         <div class="input-group">
                             <span class="input-group-text bg-light border-end-0"><i class="fas fa-user text-muted"></i></span>
                             <input type="text" id="userIdInput" class="form-control border-start-0" placeholder="User ID" value="1001">
@@ -282,7 +300,6 @@
                         <thead>
                             <tr>
                                 <th>Order Info</th>
-                                <th>Amount</th>
                                 <th>Order Status</th>
                                 <th class="text-center text-muted"><i class="fas fa-link"></i> Linked Saga</th>
                                 <th>Saga Step</th>
@@ -291,7 +308,7 @@
                         </thead>
                         <tbody id="unifiedTableBody">
                             <tr th:if="${orders.empty}">
-                                <td colspan="6" class="text-center py-4 text-muted">
+                                <td colspan="5" class="text-center py-4 text-muted">
                                     <i class="fas fa-inbox fa-3x mb-3 opacity-25"></i>
                                     <p>No orders processed yet.</p>
                                 </td>
@@ -337,7 +354,7 @@
             if (!orders || orders.length === 0) {
                 tbody.html(`
                     <tr>
-                        <td colspan="6" class="text-center py-4 text-muted">
+                        <td colspan="5" class="text-center py-4 text-muted">
                             <i class="fas fa-inbox fa-3x mb-3 opacity-25"></i>
                             <p>No transactions yet. Create an order above.</p>
                         </td>
@@ -374,13 +391,23 @@
                     `;
                 }
 
+                let itemsHtml = '';
+                if (order.productNames) {
+                    itemsHtml = `<div class="text-secondary small mt-1"><i class="fas fa-box me-1"></i> ${order.productNames}</div>`;
+                }
+
+                let timeStr = order.createdAt ? new Date(new Date(order.createdAt).getTime() - 8 * 60 * 60 * 1000).toLocaleString() : '';
+
                 tbody.append(`
                     <tr>
                         <td>
                             <div class="fw-bold text-dark order-id mb-1">${order.orderId}</div>
-                            <div class="text-muted small"><i class="fas fa-user me-1"></i> User ${order.userId}</div>
+                            <div class="text-muted small">
+                                <i class="fas fa-user me-1"></i> User ${order.userId}
+                                ${timeStr ? '<br><i class="fas fa-clock me-1"></i> ' + timeStr : ''}
+                            </div>
+                            ${itemsHtml}
                         </td>
-                        <td class="fw-semibold text-secondary">$${order.totalAmount}</td>
                         <td><span class="status-badge ${orderStatusClass}">${order.status}</span></td>
                         ${sagaHtml}
                     </tr>
@@ -406,15 +433,22 @@
             let btn = $('.btn-primary');
             btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Processing...');
 
+            let items = [];
+            $('.product-check:checked').each(function() {
+                items.push({ productId: parseInt($(this).val()), quantity: 1 });
+            });
+
+            if (items.length === 0) {
+                items.push({ productId: 1, quantity: 1 }); // fallback
+            }
+
             $.ajax({
                 url: '/api/orders',
                 type: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify({
                     userId: parseInt(userId),
-                    items: [
-                        { productId: 1, quantity: 1 }
-                    ]
+                    items: items
                 }),
                 success: function (response) {
                     refreshDashboard();
@@ -433,15 +467,22 @@
             let btn = $('.btn-simulate');
             btn.prop('disabled', true).html('<i class="fas fa-spinner fa-spin me-1"></i> Triggering...');
 
+            let items = [];
+            $('.product-check:checked').each(function() {
+                items.push({ productId: parseInt($(this).val()), quantity: 999999 });
+            });
+
+            if (items.length === 0) {
+                items.push({ productId: 1, quantity: 999999 }); // fallback
+            }
+
             $.ajax({
                 url: '/api/orders',
                 type: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify({
                     userId: parseInt(userId),
-                    items: [
-                        { productId: 1, quantity: 999999 }
-                    ]
+                    items: items
                 }),
                 success: function (response) {
                     refreshDashboard();

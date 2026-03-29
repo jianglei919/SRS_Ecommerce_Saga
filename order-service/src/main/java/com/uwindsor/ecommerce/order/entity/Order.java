@@ -36,6 +36,9 @@ public class Order {
     @Column(nullable = false)
     private OrderStatus status;
 
+    @Column(name = "product_names")
+    private String productNames;
+
     private String sagaId;
 
     @Column(name = "created_at", nullable = false)

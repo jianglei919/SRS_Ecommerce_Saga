@@ -15,6 +15,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.UUID;
+import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.HashMap;
 
 /**
  * Order Service - Core business logic for order operations and saga orchestration
@@ -55,12 +58,24 @@ public class OrderService {
         // Calculate total amount (simplified - assumes pre-calculation from client)
         BigDecimal totalAmount = calculateTotalAmount(request);
 
+        // Define product names mapping
+        Map<Long, String> productNameMap = new HashMap<>();
+        productNameMap.put(1L, "iPhone 16");
+        productNameMap.put(2L, "MacBook Pro");
+        productNameMap.put(3L, "iPad Air");
+        productNameMap.put(4L, "Apple Watch");
+
+        String productNames = request.getItems().stream()
+                .map(item -> productNameMap.getOrDefault(item.getProductId(), "Product " + item.getProductId()))
+                .collect(Collectors.joining(", "));
+
         // Step 1: Create order locally with PENDING status (local ACID transaction)
         Order order = Order.builder()
                 .orderId(orderId)
                 .userId(request.getUserId())
                 .totalAmount(totalAmount)
                 .status(Order.OrderStatus.PENDING)
+                .productNames(productNames)
                 .sagaId(sagaId)
                 .build();
         orderRepository.save(order);
